@@ -151,6 +151,29 @@ python3 server.py --warm-cache      # force-refresh all snapshots before serving
 python3 server.py --no-warm         # never build snapshots on startup
 ```
 
+`HOST`/`PORT` env vars are honored too (`--host`/`--port` flags win).
+The server binds `0.0.0.0` by default and exposes a lightweight
+`GET /healthz` (no ClickHouse dependency) for container probes.
+
+## Docker and k3s
+
+```bash
+docker build -t hn-analytics .
+docker run -p 8000:8000 hn-analytics
+```
+
+Pushing to `main` builds `ghcr.io/freakynit/hackernews-analytics:latest`
+(plus a `sha-*` tag) via `.github/workflows/docker.yml`.
+The cluster manifest lives in the infra repo at
+`k3s-vps/hackernews-analytics/workload.yaml` (`apps` namespace, plain-HTTP
+Ingress for `hackernews-analytics.jerrysniffs.online` behind Cloudflare).
+For a release, update the pinned image tag there and reapply:
+
+```bash
+kubectl --context k3s-vps apply -f hackernews-analytics/
+kubectl --context k3s-vps -n apps rollout status deployment/hackernews-analytics
+```
+
 ## Freshness and research tools
 
 Every data view has an expandable source indicator, with snapshot names and real
