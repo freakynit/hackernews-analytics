@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+ENV/
+.git/
+.gitignore
+.github/
+data/
+screenshots/
+.DS_Store
+*.log
+*.sqlite3*
+*.tmp

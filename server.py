@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import contextvars
+import os
 import sqlite3
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import html
@@ -1264,6 +1265,8 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             if p in ("/", "/index.html"):
                 self._index()
+            elif p == "/healthz":
+                self._send(200, {"ok": True})
             elif p == "/api/health":
                 try:
                     r = ch_query("SELECT 1 x, now() t", timeout=15)
@@ -1351,7 +1354,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"))
+    ap.add_argument("--port", type=int,
+                    default=int(os.environ.get("PORT", "8000")))
     ap.add_argument("--warm-cache", action="store_true",
                     help="refresh every snapshot before serving")
     ap.add_argument("--no-warm", action="store_true",
@@ -1372,8 +1377,8 @@ def main():
             f"  {n:<24} {'ok' if r.get('ok') else 'FAIL'} "
             f"{r.get('rows', '')} rows {r.get('elapsed_s', '')}s"))
 
-    srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"HN analytics → http://127.0.0.1:{args.port}")
+    srv = ThreadingHTTPServer((args.host, args.port), Handler)
+    print(f"HN analytics → http://{args.host}:{args.port}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
