@@ -113,6 +113,15 @@ results are clickable. Tabs and filters use the URL hash, so views are
 shareable (`#people?user=dang`, `#explorer?q=rust`, `#stories?q=github.com`).
 Light/dark theme is persisted in `localStorage`.
 
+## Analytics
+
+Pageviews are tracked per tab (`/#overview`, `/#stories`, …) via
+[Umami](https://a.jerrysniffs.online) (`data-auto-pageview="false"` with manual
+`umami.track()` on view change, since hash routing is invisible to the default
+tracker). Feature usage is tracked as custom events: `explorer-search`
+(type/sort/filters), `sql-run` (row count), `compare-run` (cohort kinds),
+`csv-export` (file/rows), `theme-toggle`, `user-open`, and `thread-open`.
+
 ## API
 
 - `GET /api/health` — ClickHouse connectivity check

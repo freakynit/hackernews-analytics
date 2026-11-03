@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="https://a.jerrysniffs.online/script.js" data-website-id="d232b4f0-dddc-48b0-93b5-dd59b2a7886e" data-auto-pageview="false"></script>
 <style>
 :root{
   --bg:#f5f6f8; --panel:#ffffff; --panel-2:#fafbfc; --panel-3:#f0f2f5;
@@ -1080,6 +1081,7 @@ function toggleTheme() {
   try { localStorage.setItem("hn-theme", next); } catch {}
   updateThemeIcon();
   applyChartDefaults();
+  track("theme-toggle", { theme: next });
   route();
 }
 
@@ -1376,6 +1378,7 @@ function downloadCSV(filename, rows, columns) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   toast(`Exported ${rows.length} rows`, "success");
+  track("csv-export", { file: filename, rows: rows.length });
 }
 function exportStories() {
   downloadCSV("hn-top-stories.csv", state.stories.rows, [
@@ -1767,6 +1770,7 @@ async function loadProfile(name) {
       $("pp-profile").innerHTML = emptyState(`No items found for “${u.user}”.`);
       return;
     }
+    track("user-open");
     const actMap = new Map((u.activity || []).map(r => [String(r.m).slice(0, 7), +r.c || 0]));
     const now = new Date();
     const months = Array.from({ length: 24 }, (_, i) => {
@@ -1964,6 +1968,11 @@ async function runSearch(reset = true) {
     $("ex-next").disabled = true;
     return;
   }
+  track("explorer-search", {
+    type: $("ex-type").value,
+    sort: $("ex-sort").value,
+    filtered: Boolean($("ex-author").value.trim() || $("ex-domain").value.trim() || +$("ex-min-score").value || +$("ex-min-comments").value || $("ex-from").value || $("ex-to").value),
+  });
   if (reset) { state.explorer.off = 0; state.explorer.as_of = ""; }
   syncCommentControls();
   for (const key of ["author", "domain", "min-score", "min-comments"]) state.explorer[key.replaceAll("-", "_")] = $(`ex-${key}`).value;
@@ -1999,6 +2008,7 @@ async function loadItem(id) {
     const r = await api(`/api/item/${encodeURIComponent(id)}`, { ttl: 60000 });
     if (!r.item) { $("item").innerHTML = emptyState(`Item ${id} was not found.`); return; }
     const it = r.item;
+    track("thread-open", { type: it.type || "unknown" });
     const url = safeUrl(it.url);
     const title = it.title || `${it.type} #${it.id}`;
     const titleHTML = url
@@ -2063,6 +2073,7 @@ async function runSQL() {
     $("sql-meta").textContent = `${fmt(data.rows)} rows · ${data.elapsed_s}s · ${compact(data.statistics && data.statistics.rows_read)} rows read`;
     $("sql-export").disabled = !state.sqlRows.length;
     renderSQLTable();
+    track("sql-run", { rows: state.sqlRows.length });
   } catch (e) {
     $("sql-meta").textContent = "";
     $("sql-out").innerHTML = errorState("Query failed: " + e.message);
@@ -2072,6 +2083,22 @@ function setSQL(value) {
   $("sql").value = value;
   $("sql").focus();
 }
+
+/* ------------------------------------------------------------ analytics */
+function track(name, data) {
+  try { if (window.umami) window.umami.track(name, data); } catch {}
+}
+function trackPage(view) {
+  try {
+    if (!window.umami) return;
+    window.umami.track(props => ({
+      ...props,
+      url: "/#" + view,
+      title: `${(VIEWS[view] || {}).title || view} · HN Analytics`,
+    }));
+  } catch {}
+}
+let analyticsFirstView = true;
 
 /* --------------------------------------------------------------- routing */
 function syncHash(view, params = {}) {
@@ -2110,6 +2137,7 @@ function route() {
   $("page-title").textContent = VIEWS[view].title;
   $("page-sub").textContent = VIEWS[view].sub;
   document.title = `${VIEWS[view].title} · HN Analytics`;
+  if (analyticsFirstView || previous !== view) { analyticsFirstView = false; trackPage(view); }
   if (previous !== view) window.scrollTo({ top: 0, behavior: "auto" });
   ensureView(view, params);
 }
@@ -2496,6 +2524,7 @@ async function loadComparison() {
     $('compare-result').innerHTML = `<div class="table-wrap compare-table"><table class="data"><thead><tr><th scope="col">Metric</th><th scope="col" class="num">A: ${esc(a.value || 'All stories')}</th><th scope="col" class="num">B: ${esc(b.value || 'All stories')}</th></tr></thead><tbody>${[
       ['Submissions (sample size)', 'submissions', 0], ['Median score', 'median_score', 1], ['Comments per story', 'comments_per_story', 1], [`Reaching ≥${r.threshold} points (%)`, 'reach_pct', 1]
     ].map(([label,key,d]) => `<tr><td>${esc(label)}</td><td class="num">${metric(a,key,d)}</td><td class="num">${metric(b,key,d)}</td></tr>`).join('')}</tbody></table></div>`;
+    track("compare-run", { a_kind: $('cmp-a-kind').value, b_kind: $('cmp-b-kind').value });
   } catch(e) { $('compare-result').innerHTML = errorState(e.message); }
 }
 $('cmp-run').addEventListener('click', loadComparison);
