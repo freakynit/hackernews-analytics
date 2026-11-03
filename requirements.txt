@@ -1,0 +1,3 @@
+# stdlib only — no dependencies to install
+# python3 server.py --port 8000
+# python3 refresh_stats.py      # refresh pre-computed snapshots

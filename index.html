@@ -1,0 +1,2527 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · HN Analytics</title>
+<meta name="description" content="A professional analytics workspace for Hacker News: trends, leaderboards, domains, topics, and threads across 50M+ items.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e8590c'/%3E%3Ctext x='16' y='23' font-family='Arial' font-size='20' font-weight='700' fill='white' text-anchor='middle'%3EY%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --panel-2:#fafbfc; --panel-3:#f0f2f5;
+  --border:#e4e7ec; --border-2:#d3d9e1;
+  --text:#111827; --text-2:#4b5563; --muted:#6b7280;
+  --accent:#e8590c; --accent-2:#c2410c; --accent-soft:#fff1e7; --accent-line:#ffd5bb;
+  --blue:#2563eb; --teal:#0d9488; --violet:#7c3aed; --green:#15803d;
+  --amber:#b45309; --red:#dc2626;
+  --shadow:0 1px 2px rgba(16,24,40,.05);
+  --shadow-lg:0 14px 36px rgba(16,24,40,.16);
+  --radius:10px; --radius-sm:7px;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sidebar:250px;
+  color-scheme:light;
+}
+[data-theme="dark"]{
+  --bg:#0b0f14; --panel:#121821; --panel-2:#161d27; --panel-3:#1c2531;
+  --border:#24303d; --border-2:#334252;
+  --text:#e6edf3; --text-2:#aab6c4; --muted:#8493a3;
+  --accent:#ff7a1a; --accent-2:#ff9d54; --accent-soft:#2a1a10; --accent-line:#4a2b18;
+  --blue:#60a5fa; --teal:#2dd4bf; --violet:#a78bfa; --green:#4ade80;
+  --amber:#fbbf24; --red:#f87171;
+  --shadow:0 1px 2px rgba(0,0,0,.32);
+  --shadow-lg:0 18px 44px rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+  font-feature-settings:"cv02","cv03","cv04","cv11";
+  min-height:100vh;
+}
+::selection{background:var(--accent-soft);color:var(--accent-2)}
+a{color:inherit}
+.link{color:var(--accent-2);text-decoration:none;font-weight:500}
+.link:hover{text-decoration:underline;text-underline-offset:2px}
+[data-theme="dark"] .link{color:var(--accent)}
+.icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---------------------------------------------------------------- layout */
+.sidebar{
+  position:fixed;inset:0 auto 0 0;width:var(--sidebar);z-index:30;
+  background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:16px 12px 12px;overflow-y:auto;
+}
+.main{margin-left:var(--sidebar);min-height:100vh}
+.topbar{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;
+  padding:13px 28px;border-bottom:1px solid var(--border);
+  background:var(--bg);
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);
+}
+main.content{padding:22px 28px 44px;max-width:1560px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}
+.logo{
+  width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font-weight:700;font-size:18px;letter-spacing:-.05em;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);
+}
+.brand-name{font-size:14px;font-weight:650;letter-spacing:-.02em;line-height:1.2}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-group{
+  font-size:10px;font-weight:650;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:16px 10px 5px;
+}
+.nav button{
+  display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;
+  color:var(--text-2);font:inherit;font-size:13px;font-weight:500;text-align:left;
+  padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .12s,color .12s;
+}
+.nav button:hover{background:var(--panel-3);color:var(--text)}
+.nav button.on{background:var(--accent-soft);color:var(--accent-2);font-weight:600}
+[data-theme="dark"] .nav button.on{color:var(--accent)}
+.nav button .icon{width:15px;height:15px;opacity:.9}
+.sidebar-foot{font-size:10.5px;color:var(--muted);text-align:center;padding:12px 4px 0;margin-top:auto}
+
+/* --------------------------------------------------------------- topbar */
+.page-heading{min-width:0}
+.page-heading h1{font-size:20px;font-weight:650;letter-spacing:-.03em;margin:0;line-height:1.2}
+.page-sub{font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:9px}
+.global-search{position:relative;display:flex;align-items:center}
+.global-search input{
+  width:310px;height:35px;border:1px solid var(--border);border-radius:7px;
+  background:var(--panel);color:var(--text);font:inherit;font-size:13px;
+  padding:0 52px 0 33px;outline:none;transition:border-color .12s,box-shadow .12s;
+}
+.global-search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent)}
+.global-search .icon{position:absolute;left:10px;width:15px;height:15px;color:var(--muted);pointer-events:none}
+.global-search kbd{
+  position:absolute;right:8px;font-family:var(--font-mono);font-size:10px;color:var(--muted);
+  border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 5px;background:var(--panel-2);
+}
+.icon-btn{
+  width:35px;height:35px;display:inline-grid;place-items:center;border:1px solid var(--border);
+  border-radius:7px;background:var(--panel);color:var(--text-2);cursor:pointer;
+  transition:background .12s,color .12s;
+}
+.icon-btn:hover{background:var(--panel-3);color:var(--text)}
+.icon-btn:focus-visible,.btn:focus-visible,.nav button:focus-visible,.segmented button:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+
+/* ---------------------------------------------------------------- cards */
+.view{display:none}
+.view.on{display:block;animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}}
+.view-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.toolbar-note{font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:14px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-2-1{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}
+.grid-1-1{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-people{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.card{
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 18px;min-width:0;
+}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px;flex-wrap:wrap}
+.card-head h2{font-size:13.5px;font-weight:650;letter-spacing:-.015em;margin:0;line-height:1.3}
+.card-head .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.card-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.mini-stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.card-head .mini-stats{margin-top:0}
+.mini-stats>div{display:flex;flex-direction:column;gap:0}
+.mini-stats b{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums}
+.mini-stats span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.insight-callout{
+  margin-top:12px;padding:9px 11px;border-left:2px solid var(--accent);
+  background:var(--accent-soft);border-radius:0 5px 5px 0;
+  font-size:11.8px;color:var(--text-2);line-height:1.55;
+}
+.insight-callout b{color:var(--text);font-weight:600}
+.pulse{display:flex;flex-direction:column}
+.pulse-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.pulse-item:first-child{padding-top:0}
+.pulse-item:last-child{border-bottom:0;padding-bottom:0}
+.pulse-ico{width:27px;height:27px;border-radius:6px;background:var(--panel-3);display:grid;place-items:center;color:var(--text-2);flex:none}
+.pulse-ico .icon{width:14px;height:14px}
+.pulse-label{font-size:10px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pulse-value{font-size:12.8px;font-weight:600;line-height:1.35;margin-top:1px;overflow-wrap:anywhere}
+.pulse-sub{font-size:10.8px;color:var(--muted);margin-top:1px;line-height:1.4}
+
+/* ----------------------------------------------------------------- KPIs */
+.kpi-grid{
+  display:grid;gap:12px;margin-bottom:14px;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px 15px;min-width:0}
+.kpi-label{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.055em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-value{font-size:24px;font-weight:650;letter-spacing:-.035em;line-height:1.18;margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-value small{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:2px}
+.kpi-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:11.2px;color:var(--muted);min-height:17px}
+.delta{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:4px;font-size:10.5px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.delta.up{color:var(--green);background:color-mix(in srgb,var(--green) 11%,transparent)}
+.delta.down{color:var(--red);background:color-mix(in srgb,var(--red) 11%,transparent)}
+.delta.flat{color:var(--muted);background:var(--panel-3)}
+
+/* --------------------------------------------------------------- buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 12px;border:1px solid var(--border);border-radius:6px;
+  background:var(--panel);color:var(--text);font:inherit;font-size:12.5px;font-weight:550;
+  cursor:pointer;transition:background .12s,border-color .12s,color .12s;white-space:nowrap;
+}
+.btn:hover{background:var(--panel-3);border-color:var(--border-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.small{height:29px;padding:0 9px;font-size:11.8px;gap:5px}
+.btn.small .icon{width:13px;height:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:550;
+  padding:1px 6px;border-radius:4px;background:var(--panel-3);color:var(--text-2);
+  border:1px solid transparent;text-decoration:none;white-space:nowrap;font-family:inherit;
+}
+a.chip:hover,.chip.action:hover{border-color:var(--border-2);color:var(--accent-2)}
+.chip.action{background:transparent;border-color:var(--border);cursor:pointer;height:21px}
+.chip.orange{background:var(--accent-soft);color:var(--accent-2)}
+.chip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+.chips .chip{cursor:pointer}
+.segmented{display:inline-flex;align-items:center;background:var(--panel-3);border:1px solid var(--border);border-radius:6px;padding:2px;gap:2px}
+.segmented button{
+  border:0;background:transparent;color:var(--muted);font:inherit;font-size:11.5px;font-weight:550;
+  padding:5px 9px;border-radius:4px;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s;
+}
+.segmented button:hover{color:var(--text)}
+.segmented button.on{background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
+.btn-group{display:flex;gap:5px}
+
+/* --------------------------------------------------------------- filters */
+.filterbar{
+  display:flex;align-items:flex-end;gap:9px;flex-wrap:wrap;
+  padding:12px 14px;margin-bottom:14px;
+}
+.filterbar .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.filterbar .field.grow{flex:1;min-width:180px}
+.field label{font-size:10px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.055em}
+select,input[type="text"],input[type="number"],input[type="date"],textarea{
+  font:inherit;font-size:12.5px;color:var(--text);background:var(--panel);
+  border:1px solid var(--border);border-radius:6px;height:34px;padding:0 9px;outline:none;
+  transition:border-color .12s,box-shadow .12s;
+}
+select{padding-right:25px}
+select:focus,input[type="text"]:focus,input[type="number"]:focus,input[type="date"]:focus,textarea:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent);
+}
+textarea{height:auto;min-height:150px;padding:10px 12px;font-family:var(--font-mono);font-size:12px;line-height:1.55;resize:vertical}
+
+/* ----------------------------------------------------------- comparisons */
+.compare-cohort h3{margin:0 0 14px;font-size:13px;font-weight:650}
+.compare-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.compare-fields .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.compare-fields .field-wide{grid-column:1/-1}
+.compare-fields input,.compare-fields select{width:100%;min-width:0}
+.compare-actions{padding:14px 0 0}
+.table-wrap.compare-table table.data{min-width:0;table-layout:fixed}
+.compare-table th:first-child{width:50%}
+.compare-table table.data th{white-space:normal;overflow-wrap:anywhere}
+.compare-table table.data th.num{text-align:right}
+#view-compare > .card > .sub{font-size:11.5px;color:var(--muted);margin:14px 0 0}
+@media(max-width:600px){
+  .compare-fields{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ---------------------------------------------------------------- tables */
+.table-wrap{overflow:auto;max-height:585px;border-radius:6px}
+.table-wrap table.data{min-width:560px}
+.table-wrap.short{max-height:360px}
+table.data{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+table.data th{
+  position:sticky;top:0;z-index:2;background:var(--panel);text-align:left;
+  font-size:10px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+  padding:8px 9px;border-bottom:1px solid var(--border);white-space:nowrap;
+}
+table.data td{padding:8px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.data tbody tr:last-child td{border-bottom:0}
+table.data tbody tr:hover td{background:var(--panel-2)}
+.rank{width:30px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;padding-right:5px!important}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:var(--font-mono);font-size:11.5px}
+.muted{color:var(--muted)}
+.nowrap{white-space:nowrap}
+.cell-title{font-weight:550;color:var(--text);text-decoration:none;line-height:1.35}
+.cell-title:hover{color:var(--accent-2);text-decoration:underline;text-underline-offset:2px}
+[data-theme="dark"] .cell-title:hover{color:var(--accent)}
+.cell-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.8px;color:var(--muted);margin-top:2px}
+.bar{height:5px;min-width:62px;border-radius:99px;background:var(--panel-3);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.bar.blue>i{background:var(--blue)}
+.bar.teal>i{background:var(--teal)}
+.badge{display:inline-block;font-size:9.5px;font-weight:650;letter-spacing:.03em;text-transform:uppercase;padding:2px 5px;border-radius:3px;line-height:1.35;white-space:nowrap}
+.badge.story{background:var(--accent-soft);color:var(--accent-2)}
+.badge.comment{background:color-mix(in srgb,var(--blue) 12%,transparent);color:var(--blue)}
+.badge.job{background:color-mix(in srgb,var(--teal) 12%,transparent);color:var(--teal)}
+.badge.poll{background:color-mix(in srgb,var(--violet) 12%,transparent);color:var(--violet)}
+.mini-avatar{
+  width:20px;height:20px;border-radius:5px;display:inline-grid;place-items:center;
+  background:var(--panel-3);color:var(--text-2);font-size:9px;font-weight:700;margin-right:5px;
+}
+
+/* ----------------------------------------------------------------- charts */
+.chart-box{position:relative;height:290px}
+.chart-box.tall{height:330px}
+.chart-box.short{height:225px}
+.chart-box canvas{display:block;max-width:100%}
+.legend-inline{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.legend-inline span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* ---------------------------------------------------------------- heatmap */
+.heatmap-scroll{overflow-x:auto;padding-bottom:2px}
+.heatmap{
+  display:grid;grid-template-columns:34px repeat(24,minmax(15px,1fr));gap:2px;
+  min-width:760px;align-items:center;
+}
+.heatmap .hlabel{font-size:9.5px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.heatmap .rowlabel{font-size:10px;color:var(--muted);padding-right:4px;text-align:right}
+.heatmap .hcell{height:21px;border-radius:3px;background:var(--panel-3);outline:1px solid transparent;outline-offset:-1px;transition:outline-color .12s,transform .12s}
+.heatmap .hcell:hover{outline-color:var(--text);transform:scale(1.04);position:relative;z-index:1}
+.heatmap .hcell.best{outline:1.5px solid var(--text);outline-offset:-1.5px}
+.heat-legend{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);margin-top:9px}
+.heat-legend .grad{width:88px;height:6px;border-radius:99px;background:linear-gradient(90deg,var(--panel-3),var(--accent))}
+
+/* ---------------------------------------------------------------- results */
+.result{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.result:first-child{padding-top:0}
+.result:last-child{border-bottom:0;padding-bottom:0}
+.result-side{width:56px;flex:none;text-align:right;padding-top:1px}
+.result-side .badge{font-size:8.5px;padding:1px 4px}
+.result-side b{font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--accent-2)}
+.result-side .muted{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em}
+.result-main{min-width:0;flex:1}
+.result-title{display:block;font-size:13.3px;font-weight:600;line-height:1.35;color:var(--text);text-decoration:none}
+.result-title:hover{color:var(--accent-2);text-decoration:underline;text-underline-offset:2px}
+[data-theme="dark"] .result-title:hover{color:var(--accent)}
+.result-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.8px;color:var(--muted);margin-top:3px}
+.snippet{font-size:12.3px;color:var(--text-2);line-height:1.55;margin-top:5px;overflow-wrap:anywhere}
+.badge-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+
+/* --------------------------------------------------------------- profile */
+.profile-head{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.avatar{
+  width:44px;height:44px;border-radius:9px;display:grid;place-items:center;flex:none;
+  background:var(--accent-soft);color:var(--accent-2);font-size:16px;font-weight:700;letter-spacing:-.03em;
+}
+.profile-name{font-size:15.5px;font-weight:650;letter-spacing:-.02em;line-height:1.2}
+.profile-meta{font-size:11.2px;color:var(--muted);margin-top:2px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:13px}
+.stat{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;min-width:0}
+.stat .v{font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .l{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.045em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.section-label{font-size:10px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px}
+.spark{display:flex;align-items:flex-end;gap:2px;height:38px;padding:2px 0}
+.spark i{flex:1;min-width:2px;border-radius:2px 2px 0 0;background:var(--accent);opacity:.75}
+.spark i:hover{opacity:1}
+.mini-list{display:flex;flex-direction:column}
+.mini-row{display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.mini-row:last-child{border-bottom:0}
+.mini-row .rank{width:16px;font-size:10.5px;padding-top:2px}
+.mini-row .body{min-width:0;flex:1}
+.mini-row .body a{font-weight:550;text-decoration:none;color:var(--text);line-height:1.35}
+.mini-row .body a:hover{color:var(--accent-2);text-decoration:underline}
+.mini-row .meta{font-size:10.5px;color:var(--muted);margin-top:1px}
+
+/* ---------------------------------------------------------------- domains */
+.rank-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.rank-row:first-child{padding-top:0}
+.rank-row:last-child{border-bottom:0;padding-bottom:0}
+.rank-row .rank{width:18px;font-size:10.5px;padding-top:2px}
+.rank-row .body{min-width:0;flex:1}
+.rank-row .body a{font-weight:550;text-decoration:none;font-size:12.2px;color:var(--text)}
+.rank-row .body a:hover{color:var(--accent-2);text-decoration:underline}
+.rank-row .meta{font-size:10.5px;color:var(--muted);margin-top:1px}
+.growth{font-size:10.5px;font-weight:650;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--green) 10%,transparent);color:var(--green);white-space:nowrap;font-variant-numeric:tabular-nums}
+.growth.new{background:var(--accent-soft);color:var(--accent-2)}
+.growth.neg{background:color-mix(in srgb,var(--red) 10%,transparent);color:var(--red)}
+
+/* ------------------------------------------------------------------- heat */
+.records{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.record-head{font-size:10.5px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.055em;margin-bottom:5px}
+.record-row{display:flex;gap:7px;padding:6px 0;border-bottom:1px solid var(--border)}
+.record-row:last-child{border-bottom:0}
+.record-row .rank{width:15px;font-size:10.5px;padding-top:2px}
+.record-row .body{min-width:0;flex:1}
+.record-row .body a{font-size:12px;font-weight:550;text-decoration:none;color:var(--text);line-height:1.35}
+.record-row .body a:hover{color:var(--accent-2);text-decoration:underline}
+
+/* ------------------------------------------------------------------ SQL */
+.sql-editor{width:100%;min-height:170px;font-size:12.2px}
+.sql-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px}
+.kbd-hint{font-size:10.5px;color:var(--muted)}
+.kbd-hint kbd{font-family:var(--font-mono);border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--panel-2)}
+.sql-out{margin-top:13px}
+.schema{margin-top:16px;border-top:1px solid var(--border);padding-top:11px;font-size:11.8px;color:var(--text-2)}
+.schema summary{cursor:pointer;font-weight:600;color:var(--text);font-size:12px}
+.schema .schema-body{padding-top:8px;line-height:1.7}
+.schema code{font-family:var(--font-mono);font-size:11px;background:var(--panel-3);padding:1px 4px;border-radius:3px}
+
+/* --------------------------------------------------------------- states */
+.state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:34px 14px;text-align:center;color:var(--muted);font-size:12.3px;line-height:1.5}
+.state .icon{width:21px;height:21px;color:var(--border-2)}
+.state.error{color:var(--red)}
+.state.error .icon{color:var(--red)}
+.skeleton-row{display:flex;gap:10px;padding:8px 0;align-items:center}
+.skeleton{height:11px;border-radius:4px;background:linear-gradient(90deg,var(--panel-3) 25%,var(--panel-2) 37%,var(--panel-3) 63%);background-size:400% 100%;animation:shimmer 1.3s infinite}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.skeleton-kpi{height:82px;border-radius:var(--radius);background:linear-gradient(90deg,var(--panel-3) 25%,var(--panel-2) 37%,var(--panel-3) 63%);background-size:400% 100%;animation:shimmer 1.3s infinite;border:1px solid var(--border)}
+#toast{position:fixed;right:18px;bottom:18px;z-index:100;display:flex;flex-direction:column;gap:7px;max-width:calc(100vw - 36px);pointer-events:none}
+.toast{background:var(--text);color:var(--bg);border-radius:7px;padding:9px 12px;font-size:12.3px;box-shadow:var(--shadow-lg);animation:toastin .18s ease;pointer-events:auto}
+.toast.error{background:var(--red);color:#fff}
+.toast.success{background:var(--green);color:#fff}
+@keyframes toastin{from{opacity:0;transform:translateY(5px)}}
+.page-foot{margin-top:26px;padding-top:15px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+.page-foot a{color:var(--text-2);text-decoration:none}
+.page-foot a:hover{color:var(--accent-2);text-decoration:underline}
+
+/* ------------------------------------------------------------- responsive */
+@media (max-width:1180px){
+  .grid-2-1{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+  .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .global-search input{width:250px}
+}
+@media (max-width:1020px){
+  :root{--sidebar:0px}
+  .sidebar{
+    position:static;width:auto;flex-direction:row;align-items:center;gap:10px;
+    padding:10px 14px;border-right:0;border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .brand{padding:0 8px 0 0;flex:none}
+  .brand-sub{display:none}
+  .nav{flex-direction:row;gap:1px;flex:1;min-width:0}
+  .nav-group,.sidebar-foot{display:none}
+  .nav button{width:auto;white-space:nowrap;padding:7px 9px;font-size:12px}
+  .nav button .icon{width:14px;height:14px}
+  .main{margin-left:0}
+  .topbar{padding:11px 18px}
+  main.content{padding:17px 18px 38px}
+  .grid-2-1,.grid-1-1,.grid-2,.grid-3,.grid-people{grid-template-columns:1fr}
+  .records{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+  .page-sub{display:none}
+  .topbar{gap:10px}
+  .global-search{flex:1}
+  .global-search input{width:100%;min-width:140px}
+  .global-search kbd{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi-value{font-size:20px}
+  .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nav button span{display:none}
+  .nav button .icon{width:17px;height:17px}
+  .nav button{padding:8px}
+  .filterbar .field{flex:1 1 140px}
+  .filterbar .field.grow{flex:1 1 100%}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+mark { background: #ffe08a; color: #302600; border-radius: 2px; }
+.thread-node { border-left: 2px solid var(--border); padding: 8px 0 8px 12px; margin: 6px 0; }
+.thread-node summary { cursor: pointer; }
+.thread-node.author-match { border-left-color: var(--accent); background: var(--panel-2); }
+.provenance { font-size: 11px; color: var(--muted); margin: 8px 0 14px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+</svg>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">Y</div>
+    <div><div class="brand-name">HN Analytics</div><div class="brand-sub">ClickHouse · 50M items</div></div>
+  </div>
+  <nav class="nav" id="nav" aria-label="Sections">
+    <div class="nav-group">Analyze</div>
+    <button data-view="overview" class="on" title="Overview"><svg class="icon"><use href="#i-grid"/></svg><span>Overview</span></button>
+    <button data-view="stories" title="Stories"><svg class="icon"><use href="#i-file"/></svg><span>Stories</span></button>
+    <button data-view="insights" title="Insights"><svg class="icon"><use href="#i-trend"/></svg><span>Insights</span></button>
+    <div class="nav-group">Community</div>
+    <button data-view="people" title="People"><svg class="icon"><use href="#i-users"/></svg><span>People</span></button>
+    <button data-view="domains" title="Domains"><svg class="icon"><use href="#i-globe"/></svg><span>Domains</span></button>
+    <button data-view="activity" title="Activity"><svg class="icon"><use href="#i-activity"/></svg><span>Activity</span></button>
+    <div class="nav-group">Explore</div>
+    <button data-view="compare" title="Compare"><svg class="icon"><use href="#i-grid"/></svg><span>Compare</span></button>
+    <button data-view="momentum"><span>Momentum</span></button>
+    <button data-view="explorer" title="Explorer"><svg class="icon"><use href="#i-search"/></svg><span>Explorer</span></button>
+    <button data-view="sql" title="SQL Lab"><svg class="icon"><use href="#i-db"/></svg><span>SQL Lab</span></button>
+  </nav>
+  <div class="sidebar-foot">Read-only · play.clickhouse.com</div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="page-heading">
+      <h1 id="page-title">Overview</h1>
+      <div class="page-sub" id="page-sub">A live read on 50M+ Hacker News stories and comments.</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="global-search">
+        <svg class="icon"><use href="#i-search"/></svg>
+        <input id="global-q" type="text" placeholder="Search 50M items…" autocomplete="off" aria-label="Search Hacker News">
+        <kbd>/</kbd>
+      </div>
+      <button class="icon-btn" id="btn-refresh-view" title="Reload current view" aria-label="Reload current view"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle color theme"><svg class="icon"><use id="theme-icon" href="#i-moon"/></svg></button>
+    </div>
+  </header>
+
+  <main class="content">
+    <!-- ============================================================ OVERVIEW -->
+    <section class="view on" id="view-overview">
+      <div class="view-toolbar">
+        <div class="segmented" id="ov-range" aria-label="Overview range">
+          <button data-days="1">24h</button>
+          <button data-days="7">7d</button>
+          <button data-days="30" class="on">30d</button>
+          <button data-days="90">90d</button>
+          <button data-days="365">1y</button>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:7px;flex-wrap:wrap">
+          <div class="field"><label for="ov-from" class="sr-only">From</label>
+            <input id="ov-from" type="date" min="2006-10-01" title="Custom start date (overrides preset)" style="height:30px;font-size:12px">
+          </div>
+          <span class="muted" style="padding-bottom:7px">→</span>
+          <div class="field"><label for="ov-to" class="sr-only">To</label>
+            <input id="ov-to" type="date" min="2006-10-01" title="Custom end date (overrides preset)" style="height:30px;font-size:12px">
+          </div>
+          <button class="btn small" id="ov-apply">Apply</button>
+          <button class="btn small" id="ov-clear" title="Clear custom dates">Clear</button>
+        </div>
+        <div class="toolbar-note" id="ov-updated">Loading…</div>
+      </div>
+      <div class="kpi-grid" id="ov-kpis"></div>
+      <div class="grid grid-2-1">
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Activity</h2><p class="sub" id="ov-trend-sub">Stories and comments</p></div>
+            <div class="legend-inline"><span><i class="dot" style="background:var(--accent)"></i>Stories</span><span><i class="dot" style="background:var(--blue)"></i>Comments</span></div>
+          </div>
+          <div class="chart-box tall"><canvas id="chart-trend" aria-label="Activity trend"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>Pulse</h2><p class="sub">Signals from the current range</p></div></div>
+          <div id="ov-pulse"></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:14px">
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Top stories</h2><p class="sub" id="ov-stories-sub">Highest scoring in range</p></div>
+            <button class="btn small" id="ov-view-stories">View all</button>
+          </div>
+          <div id="ov-stories"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Top domains</h2><p class="sub" id="ov-domains-sub">Most submitted in range</p></div>
+            <button class="btn small" id="ov-view-domains">View all</button>
+          </div>
+          <div class="table-wrap" id="ov-domains"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= STORIES -->
+    <section class="view" id="view-stories">
+      <div class="filterbar card">
+        <div class="field"><label for="st-sort">Sort by</label>
+          <select id="st-sort"><option value="score">Top score</option><option value="discussed">Most discussed</option><option value="recent">Most recent</option></select>
+        </div>
+        <div class="field"><label for="st-days">Time range</label>
+          <select id="st-days"><option value="1">Last 24 hours</option><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option><option value="0">All time</option></select>
+        </div>
+        <div class="field"><label for="st-from">From</label><input id="st-from" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="st-to">To</label><input id="st-to" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="st-kind">Format</label>
+          <select id="st-kind"><option value="all">All stories</option><option value="link">Link posts</option><option value="text">Text posts</option><option value="ask">Ask HN</option><option value="show">Show HN</option></select>
+        </div>
+        <div class="field grow"><label for="st-q">Text filter</label>
+          <input id="st-q" type="text" placeholder="Title or URL contains…">
+        </div>
+        <button class="btn primary" id="st-apply">Apply filters</button>
+        <button class="btn" id="st-reset">Reset</button>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div><h2>Top stories</h2><p class="sub" id="st-meta">Loading…</p></div>
+          <div class="card-actions"><div class="mini-stats" id="st-stats"></div><button class="btn small" id="st-export"><svg class="icon"><use href="#i-download"/></svg>Export CSV</button></div>
+        </div>
+        <div class="table-wrap" id="st-table"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ INSIGHTS -->
+    <section class="view" id="view-insights">
+      <div class="filterbar card">
+        <div class="field"><label for="ins-days">Time range</label>
+          <select id="ins-days"><option value="0" selected>All time (snapshots)</option><option value="30">Last 30 days (live)</option><option value="90">Last 90 days (live)</option><option value="365">Last year (live)</option><option value="1825">Last 5 years (live)</option></select>
+        </div>
+        <div class="field"><label for="ins-from">From</label><input id="ins-from" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="ins-to">To</label><input id="ins-to" type="date" min="2006-10-01"></div>
+        <button class="btn primary" id="ins-apply">Apply filters</button>
+        <button class="btn" id="ins-reset">Reset</button>
+        <div class="toolbar-note" id="ins-meta" style="margin-left:auto">Loading pre-computed insights…</div>
+      </div>
+      <div class="kpi-grid" id="ins-kpis"></div>
+      <div class="grid grid-2-1">
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Posting-time patterns</h2><p class="sub" id="ins-heat-sub">Selected range · average score by weekday and hour (UTC)</p></div>
+            <div class="segmented" id="ins-heat-metric"><button data-metric="avg_score" class="on">Avg score</button><button data-metric="median_score">Median score</button><button data-metric="reach_pct">Threshold share</button><button data-metric="c">Volume</button></div>
+          </div>
+          <div class="filterbar">
+            <div class="field"><label for="post-tz">Time zone</label><select id="post-tz"></select></div>
+            <div class="field"><label for="post-min">Min age (days)</label><input id="post-min" type="number" min="1" value="7"></div>
+            <div class="field"><label for="post-max">Max age (days)</label><input id="post-max" type="number" min="2" value="30"></div>
+            <div class="field"><label for="post-threshold">Score threshold</label><input id="post-threshold" type="number" min="1" value="100"></div>
+            <button class="btn" id="post-apply">Update patterns</button>
+          </div>
+          <div class="heatmap-scroll"><div id="ins-heatmap"></div></div>
+          <div class="heat-legend"><span>Low</span><span class="grad"></span><span>High</span><span class="muted" style="margin-left:auto">Dimmed cells have &lt;30 stories</span></div>
+          <div class="insight-callout" id="ins-heat-note"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>Score distribution</h2><p class="sub" id="ins-score-sub">Visible stories · selected range · logarithmic scale</p></div></div>
+          <div class="chart-box short"><canvas id="chart-scores" aria-label="Story score distribution"></canvas></div>
+          <div class="mini-stats" id="ins-score-stats"></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:14px">
+        <div class="card">
+          <div class="card-head"><div><h2>Post formats</h2><p class="sub">Selected range · engagement by submission type</p></div></div>
+          <div class="table-wrap short" id="ins-formats"></div>
+          <div class="insight-callout" id="ins-format-note"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>Topic momentum</h2><p class="sub" id="ins-topic-sub">Monthly story titles matching keywords</p></div>
+            <div class="segmented" id="ins-topic-mode"><button data-mode="share" class="on">Share</button><button data-mode="count">Count</button></div>
+          </div>
+          <div class="chips" id="ins-topic-chips"></div>
+          <div class="chart-box short"><canvas id="chart-topics" aria-label="Topic momentum"></canvas></div>
+          <div class="insight-callout" id="ins-topic-note"></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:14px">
+        <div class="card">
+          <div class="card-head"><div><h2>Highest-rated domains</h2><p class="sub">Selected range · top by average score</p></div><button class="btn small" data-nav="domains">Explore</button></div>
+          <div class="table-wrap short" id="ins-domains"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>All-time records</h2><p class="sub">Most upvoted and most discussed</p></div></div>
+          <div class="records" id="ins-records"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== PEOPLE -->
+    <section class="view" id="view-people">
+      <div class="grid grid-people">
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Leaderboard</h2><p class="sub" id="pp-meta">All time</p></div>
+            <button class="btn small" id="pp-export"><svg class="icon"><use href="#i-download"/></svg>Export CSV</button>
+          </div>
+          <div class="filterbar" style="border:0;background:transparent;box-shadow:none;padding:0;margin-bottom:10px">
+            <div class="field"><label for="pp-kind">Metric</label>
+              <select id="pp-kind"><option value="submitters">Most stories</option><option value="karma">Highest story karma</option><option value="commenters">Most comments</option></select>
+            </div>
+            <div class="field"><label for="pp-days">Range</label>
+              <select id="pp-days"><option value="0" selected>All time (snapshot)</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
+            </div>
+            <div class="field"><label for="pp-from">From</label><input id="pp-from" type="date" min="2006-10-01"></div>
+            <div class="field"><label for="pp-to">To</label><input id="pp-to" type="date" min="2006-10-01"></div>
+            <div class="field grow"><label for="pp-lookup">Find user</label>
+              <input id="pp-lookup" type="text" placeholder="username, e.g. dang">
+            </div>
+            <button class="btn" id="pp-open">Open user</button>
+            <button class="btn primary" id="pp-apply">Load</button>
+          </div>
+          <div class="table-wrap" id="pp-table"></div>
+        </div>
+        <div class="card" id="pp-profile"><div class="state"><svg class="icon"><use href="#i-users"/></svg><div>Select a user from the leaderboard, or enter a username above.</div></div></div>
+      </div>
+    </section>
+
+    <!-- ============================================================= DOMAINS -->
+    <section class="view" id="view-domains">
+      <div class="filterbar card">
+        <div class="field"><label for="dm-days">Time range</label>
+          <select id="dm-days"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365" selected>Last year</option><option value="0">All time</option></select>
+        </div>
+        <div class="field"><label for="dm-from">From</label><input id="dm-from" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="dm-to">To</label><input id="dm-to" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="dm-metric">Rank by</label>
+          <select id="dm-metric"><option value="count">Most stories</option><option value="avg_score">Highest average score</option><option value="max_score">Highest single score</option><option value="comments">Most comments</option></select>
+        </div>
+        <div class="field"><label for="dm-min">Minimum stories</label>
+          <select id="dm-min"><option value="1">No minimum</option><option value="50">50+</option><option value="100" selected>100+</option><option value="500">500+</option></select>
+        </div>
+        <button class="btn primary" id="dm-apply">Apply filters</button>
+      </div>
+      <div class="grid grid-2-1">
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Domain rankings</h2><p class="sub" id="dm-meta">Loading…</p></div>
+            <button class="btn small" id="dm-export"><svg class="icon"><use href="#i-download"/></svg>Export CSV</button>
+          </div>
+          <div class="table-wrap" id="dm-table"></div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><div><h2>Rising domains</h2><p class="sub">Last 30d vs prior 30d</p></div></div>
+            <div id="dm-rising"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><h2>Lowest signal</h2><p class="sub">1,000+ stories · lowest average score</p></div></div>
+            <div id="dm-low"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ ACTIVITY -->
+    <section class="view" id="view-activity">
+      <div class="kpi-grid" id="ac-kpis"></div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-head"><div><h2>Volume by year</h2><p class="sub" id="ac-year-sub">Stories and comments since 2006</p></div></div>
+          <div class="chart-box"><canvas id="chart-year" aria-label="Yearly volume"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div><h2>Volume by month</h2><p class="sub" id="ac-month-sub">All time</p></div>
+            <div class="segmented" id="ac-month-range"><button data-years="5">5y</button><button data-years="10" class="on">10y</button><button data-years="0">All</button></div>
+          </div>
+          <div class="chart-box"><canvas id="chart-month" aria-label="Monthly volume"></canvas></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:14px">
+        <div class="card">
+          <div class="card-head"><div><h2>Items by hour</h2><p class="sub">UTC · selected window</p></div></div>
+          <div class="chart-box short"><canvas id="chart-hour" aria-label="Items by hour"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>Items by weekday</h2><p class="sub">Monday through Sunday</p></div></div>
+          <div class="chart-box short"><canvas id="chart-weekday" aria-label="Items by weekday"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-head">
+          <div><h2>Posting heatmap</h2><p class="sub">Hour × weekday visible story count</p></div>
+          <div class="card-actions">
+            <div class="segmented" id="ac-heat-range"><button data-days="30">30d</button><button data-days="90" class="on">90d</button><button data-days="365">1y</button><button data-days="0">All</button></div>
+            <input id="ac-from" type="date" min="2006-10-01" title="Custom start date" style="height:30px;font-size:12px">
+            <span class="muted">→</span>
+            <input id="ac-to" type="date" min="2006-10-01" title="Custom end date" style="height:30px;font-size:12px">
+            <button class="btn small" id="ac-apply">Apply</button>
+          </div>
+        </div>
+        <div class="heatmap-scroll"><div id="ac-heatmap"></div></div>
+        <div class="heat-legend"><span>Low</span><span class="grad"></span><span>High</span></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ EXPLORER -->
+    <section class="view" id="view-explorer">
+      <div class="filterbar card">
+        <div class="field grow"><label for="ex-q">Full-text search</label>
+          <input id="ex-q" type="text" placeholder="rust, LLM agents, YC, databases…">
+        </div>
+        <div class="field"><label for="ex-type">Type</label>
+          <select id="ex-type"><option value="all">Everything</option><option value="story">Stories</option><option value="comment">Comments</option></select>
+        </div>
+        <div class="field"><label for="ex-sort">Sort</label>
+          <select id="ex-sort"><option value="recent">Most recent</option><option value="score">Highest score</option></select>
+        </div>
+        <div class="field"><label for="ex-from">From</label><input id="ex-from" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="ex-to">To</label><input id="ex-to" type="date" min="2006-10-01"></div>
+        <div class="field"><label for="ex-author">Author (exact)</label><input id="ex-author" placeholder="dang"></div>
+        <div class="field"><label for="ex-domain">Domain (exact)</label><input id="ex-domain" placeholder="example.com"></div>
+        <div class="field"><label for="ex-min-score">Minimum story score</label><input id="ex-min-score" type="number" min="0" value="0"></div>
+        <div class="field"><label for="ex-min-comments">Minimum story comments</label><input id="ex-min-comments" type="number" min="0" value="0"></div>
+        <button class="btn primary" id="ex-apply">Search</button>
+        <p class="sub">Scores and comment-count filters apply to stories. Comment scores are unavailable in the archive.</p>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div><h2>Search results</h2><p class="sub" id="ex-meta">Enter a query to search titles, comments, and URLs.</p></div>
+          <div class="btn-group">
+            <button class="btn small" id="ex-prev" disabled><svg class="icon"><use href="#i-left"/></svg>Prev</button>
+            <button class="btn small" id="ex-next" disabled>Next<svg class="icon"><use href="#i-right"/></svg></button>
+          </div>
+        </div>
+        <div id="ex-rows"><div class="state"><svg class="icon"><use href="#i-search"/></svg><div>Search 50M stories and comments, or open an item by ID below.</div></div></div>
+      </div>
+      <div class="card" style="margin-top:14px" id="item-card">
+        <div class="card-head"><div><h2>Item &amp; thread viewer</h2><p class="sub">Inspect any Hacker News item by ID</p></div></div>
+        <div class="filterbar" style="border:0;background:transparent;box-shadow:none;padding:0;margin-bottom:10px">
+          <div class="field grow"><label for="it-id">Item ID</label><input id="it-id" type="number" min="1" placeholder="e.g. 50348684"></div>
+          <button class="btn primary" id="it-open">Open item</button>
+        </div>
+        <div id="item"><div class="state"><svg class="icon"><use href="#i-message"/></svg><div>Enter an item ID to inspect a story or comment thread.</div></div></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-compare">
+      <div class="card"><div class="card-head"><div><h2>Compare story cohorts</h2><p class="sub">Visible submissions · topic matches are literal title substrings · cohorts can overlap · dates use UTC</p></div></div>
+      <div class="grid grid-2" id="compare-controls"></div>
+      <div class="filterbar compare-actions"><div class="field"><label for="cmp-threshold">Score threshold</label><input id="cmp-threshold" type="number" min="1" value="100"></div><button id="cmp-run" class="btn primary">Compare</button></div>
+      <div id="compare-result"></div><p class="sub">Observed archive scores at query time. Different story ages and coverage can affect comparisons.</p></div>
+    </section>
+    <section class="view" id="view-momentum">
+      <div class="card"><div class="card-head"><div><h2>Fast-rising stories</h2><p class="sub">Points per hour between first and latest observations in the past 24 hours · minimum 5 minute observation span</p></div><button id="momentum-refresh" class="btn">Refresh</button></div>
+      <p class="sub">Collected from the HN API going forward. Coverage includes the top 100 and newest 100 stories and follows them for 48 hours. Gaps and sampling affect rankings; these are not a complete historical series.</p>
+      <div id="momentum-rows"></div><div id="momentum-detail"></div></div>
+    </section>
+    <!-- ================================================================ SQL -->
+    <section class="view" id="view-sql">
+      <div class="card">
+        <div class="card-head">
+          <div><h2>SQL Lab</h2><p class="sub">Read-only queries against <span class="mono">hackernews_history</span> · LIMIT capped at 1,000</p></div>
+          <div class="chips" style="margin:0" id="sql-examples">
+            <button class="chip action" data-sql="SELECT id, title, url, score, by, time FROM hackernews_history WHERE type = 'story' AND title ILIKE '%ai%' ORDER BY score DESC LIMIT 20">Top AI stories</button>
+            <button class="chip action" data-sql="SELECT by AS user, count() AS comments FROM hackernews_history WHERE type = 'comment' AND time >= now() - INTERVAL 7 DAY GROUP BY user ORDER BY comments DESC LIMIT 20">Weekly commenters</button>
+            <button class="chip action" data-sql="SELECT toDate(time) AS day, count() AS items FROM hackernews_history WHERE time >= now() - INTERVAL 30 DAY GROUP BY day ORDER BY day">30d volume</button>
+            <button class="chip action" data-sql="SELECT domain(url) AS domain, count() AS stories, round(avg(score), 1) AS avg_score FROM hackernews_history WHERE type = 'story' AND url != '' GROUP BY domain ORDER BY stories DESC LIMIT 25">Domain leaders</button>
+            <button class="chip action" data-sql="DESCRIBE TABLE hackernews_history">Schema</button>
+          </div>
+        </div>
+        <textarea class="sql-editor" id="sql" spellcheck="false" aria-label="SQL query">SELECT type, count() AS items
+FROM hackernews_history
+GROUP BY type
+ORDER BY items DESC</textarea>
+        <div class="sql-actions">
+          <button class="btn primary" id="sql-run">Run query</button>
+          <span class="kbd-hint"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span>
+          <span class="muted" id="sql-meta"></span>
+          <span style="margin-left:auto"></span>
+          <button class="btn" id="sql-export" disabled><svg class="icon"><use href="#i-download"/></svg>Export CSV</button>
+        </div>
+        <div class="sql-out" id="sql-out"></div>
+        <details class="schema">
+          <summary>Schema &amp; guardrails</summary>
+          <div class="schema-body">
+            <div><code>update_time</code> <code>id</code> <code>deleted</code> <code>type</code> (<code>story</code>, <code>comment</code>, <code>poll</code>, <code>pollopt</code>, <code>job</code>) <code>by</code> <code>time</code> <code>text</code> <code>dead</code> <code>parent</code> <code>poll</code> <code>kids</code> <code>url</code> <code>score</code> <code>title</code> <code>parts</code> <code>descendants</code></div>
+            <div style="margin-top:6px">Only SELECT, WITH, SHOW, DESCRIBE and EXPLAIN are accepted. Write/DDL statements are blocked, queries must touch <code>hackernews_history</code>, and row-returning queries are capped at 1,000 rows.</div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <span>Data: <a href="https://play.clickhouse.com" target="_blank" rel="noopener noreferrer">play.clickhouse.com</a> · <span class="mono">hackernews_history</span></span>
+      <span>·</span>
+      <span>Snapshots: <span class="mono">data/snapshots/</span> · refresh with <span class="mono">python3 refresh_stats.py</span></span>
+      <span>·</span>
+      <a href="https://news.ycombinator.com" target="_blank" rel="noopener noreferrer">news.ycombinator.com</a>
+    </footer>
+  </main>
+</div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+/* --------------------------------------------------------------- utilities */
+const $ = id => document.getElementById(id);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const nf = new Intl.NumberFormat("en-US");
+const cf = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+const dfShort = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+const dfDay = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const dfMonth = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+const dfDateTime = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+const escMap = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => escMap[c]);
+const attr = esc;
+const fmt = n => (n === null || n === undefined || n === "") ? "—" : nf.format(Number(n));
+const compact = n => (n === null || n === undefined || n === "") ? "—" : cf.format(Number(n));
+const pct = (x, d = 1) => Number.isFinite(+x) ? `${(+x * 100).toFixed(d)}%` : "—";
+const pad2 = n => String(n).padStart(2, "0");
+const DAYS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function decodeEntities(value) {
+  if (value === null || value === undefined) return "";
+  const t = document.createElement("textarea");
+  t.innerHTML = String(value);
+  return t.value;
+}
+function plainText(value) {
+  let s = decodeEntities(value || "");
+  s = s.replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (m, href, label) => {
+    const url = decodeEntities(href).trim();
+    const text = decodeEntities(label.replace(/<[^>]+>/g, "")).trim();
+    if (!/^https?:\/\//i.test(url)) return text;
+    return text && text !== url ? `${text} (${url})` : url;
+  });
+  s = s.replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|blockquote|pre)>/gi, "\n").replace(/<[^>]+>/g, "");
+  return s.replace(/\n{3,}/g, "\n\n").trim();
+}
+function textWithLinks(value, limit = 700) {
+  let s = plainText(value);
+  if (limit) s = s.slice(0, limit);
+  const parts = [];
+  const re = /https?:\/\/[^\s<>"']+/g;
+  let last = 0;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    let url = m[0].replace(/[.,;:!?)\]]+$/, "");
+    if (!url) continue;
+    const href = safeUrl(url);
+    parts.push(esc(s.slice(last, m.index)));
+    if (href) {
+      const shown = url.length > 62 ? url.slice(0, 59) + "…" : url;
+      parts.push(`<a class="link" href="${attr(href)}" target="_blank" rel="noopener noreferrer">${esc(shown)}</a>`);
+    } else {
+      parts.push(esc(url));
+    }
+    last = m.index + url.length;
+    re.lastIndex = last;
+  }
+  parts.push(esc(s.slice(last)));
+  return parts.join("");
+}
+function parseUTC(value) {
+  if (!value) return null;
+  let s = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + "T00:00:00Z");
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+    s = s.replace(" ", "T") + "Z";
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+const fmtDate = v => { const d = parseUTC(v); return d ? dfShort.format(d) : "—"; };
+const fmtDateTime = v => { const d = parseUTC(v); return d ? dfDateTime.format(d) + " UTC" : "—"; };
+function timeAgo(value) {
+  const d = parseUTC(value);
+  if (!d) return "—";
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 30 * 86400) return `${Math.floor(diff / 86400)}d ago`;
+  return fmtDate(value);
+}
+function ageShort(value) {
+  const d = parseUTC(value);
+  if (!d) return "—";
+  const h = (Date.now() - d.getTime()) / 3600000;
+  if (h < 0) return "just now";
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))}m old`;
+  if (h < 48) return `${h.toFixed(1)}h old`;
+  return `${(h / 24).toFixed(1)}d old`;
+}
+function chartLabel(value, granularity) {
+  const d = parseUTC(value);
+  if (!d) return "";
+  if (granularity === "month") return dfMonth.format(d);
+  if (granularity === "hour") return `${dfDay.format(d)}, ${pad2(d.getUTCHours())}:00`;
+  if (granularity === "year") return String(d.getUTCFullYear());
+  return dfDay.format(d);
+}
+function partialMonthKey() {
+  const now = new Date();
+  return now.getUTCDate() < 28 ? `${now.getUTCFullYear()}-${pad2(now.getUTCMonth() + 1)}` : null;
+}
+function deltaChip(cur, prev, invert = false) {
+  const c = Number(cur), p = Number(prev);
+  if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return `<span class="delta flat">new</span>`;
+  const r = (c - p) / p;
+  const cls = r > 0.0005 ? (invert ? "down" : "up") : r < -0.0005 ? (invert ? "up" : "down") : "flat";
+  const arrow = r > 0.0005 ? "↑" : r < -0.0005 ? "↓" : "→";
+  return `<span class="delta ${cls}" title="prior period: ${fmt(p)}">${arrow} ${Math.abs(r * 100).toFixed(1)}%</span>`;
+}
+function safeUrl(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!/^(https?:)?\/\//i.test(raw)) return null;
+  try {
+    const u = new URL(raw, location.href);
+    return (u.protocol === "http:" || u.protocol === "https:") ? u.href : null;
+  } catch { return null; }
+}
+function hostOf(value) {
+  const u = safeUrl(value);
+  if (!u) return "";
+  try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; }
+}
+const HN_ITEM = id => `https://news.ycombinator.com/item?id=${encodeURIComponent(id)}`;
+const HN_USER = u => `https://news.ycombinator.com/user?id=${encodeURIComponent(u)}`;
+function userLink(name) {
+  if (!name) return '<span class="muted">deleted</span>';
+  return `<a class="link" href="#people?user=${encodeURIComponent(name)}" data-user="${attr(name)}">${esc(name)}</a>`;
+}
+function domainLink(domain) {
+  if (!domain) return "—";
+  const value = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
+  const url = safeUrl(value);
+  if (!url) return esc(domain);
+  return `<a class="link" href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(String(domain).replace(/^https?:\/\//i, ""))}</a>`;
+}
+function hnItemLink(id, text) {
+  return `<a class="link" href="${HN_ITEM(id)}" target="_blank" rel="noopener noreferrer">${esc(text ?? `HN #${id}`)}</a>`;
+}
+function itemLink(id, text) {
+  return `<a class="link" href="#explorer?item=${encodeURIComponent(id)}" data-item="${attr(id)}">${esc(text ?? `#${id}`)}</a>`;
+}
+function storyTitleLink(story, cls = "cell-title") {
+  const title = story.title || "(untitled)";
+  const url = safeUrl(story.url);
+  if (url) {
+    return `<a class="${cls}" href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`;
+  }
+  return `<a class="${cls}" href="${HN_ITEM(story.id)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`;
+}
+function storyMeta(story, withComments = true) {
+  const bits = [];
+  const url = safeUrl(story.url);
+  if (url) bits.push(`<a class="chip" href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(hostOf(url))}</a>`);
+  bits.push(`<span>by ${userLink(story.by)}</span>`);
+  bits.push(`<span title="${attr(story.time)}">${timeAgo(story.time)}</span>`);
+  if (withComments && story.descendants !== null && story.descendants !== undefined) {
+    bits.push(`<a class="chip" href="${HN_ITEM(story.id)}" target="_blank" rel="noopener noreferrer">${fmt(story.descendants)} comments</a>`);
+  }
+  bits.push(hnItemLink(story.id, `HN #${story.id}`));
+  return `<div class="result-meta">${bits.join("")}</div>`;
+}
+
+/* ------------------------------------------------------------------- theme */
+function palette() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  return dark ? {
+    accent: "#ff7a1a", accentFill: "rgba(255,122,26,.13)",
+    blue: "#60a5fa", blueFill: "rgba(96,165,250,.12)",
+    teal: "#2dd4bf", violet: "#a78bfa", green: "#4ade80",
+    amber: "#fbbf24", red: "#f87171",
+    grid: "#222d39", border: "#2a3745", muted: "#8493a3", text: "#e6edf3",
+    panel: "#121821", tooltipBg: "#e6edf3", tooltipText: "#0b0f14"
+  } : {
+    accent: "#e8590c", accentFill: "rgba(232,89,12,.11)",
+    blue: "#2563eb", blueFill: "rgba(37,99,235,.09)",
+    teal: "#0d9488", violet: "#7c3aed", green: "#15803d",
+    amber: "#b45309", red: "#dc2626",
+    grid: "#eef1f4", border: "#e4e7ec", muted: "#6b7280", text: "#111827",
+    panel: "#ffffff", tooltipBg: "#111827", tooltipText: "#f9fafb"
+  };
+}
+function applyChartDefaults() {
+  if (typeof Chart === "undefined") return;
+  const p = palette();
+  Chart.defaults.color = p.muted;
+  Chart.defaults.borderColor = p.grid;
+  Chart.defaults.font.family = 'Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  Chart.defaults.font.size = 11;
+  Chart.defaults.animation.duration = 220;
+}
+function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem("hn-theme"); } catch {}
+  const theme = saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.dataset.theme = theme;
+  updateThemeIcon();
+  applyChartDefaults();
+}
+function updateThemeIcon() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  const use = $("theme-icon");
+  if (use) use.setAttribute("href", dark ? "#i-sun" : "#i-moon");
+  $("theme-toggle").setAttribute("aria-pressed", String(dark));
+  $("theme-toggle").title = dark ? "Switch to light theme" : "Switch to dark theme";
+}
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("hn-theme", next); } catch {}
+  updateThemeIcon();
+  applyChartDefaults();
+  route();
+}
+
+/* ------------------------------------------------------------- app / cache */
+const VIEWS = {
+  overview: { title: "Overview", sub: "A live read on 50M+ Hacker News stories and comments." },
+  stories: { title: "Stories", sub: "Rank submissions by score, discussion, and recency." },
+  insights: { title: "Insights", sub: "Snapshot-backed patterns with live custom ranges." },
+  people: { title: "People", sub: "The most active authors and commenters." },
+  domains: { title: "Domains", sub: "Where the community links to — and what performs." },
+  activity: { title: "Activity", sub: "When the community posts, by year, month, weekday, and hour." },
+  explorer: { title: "Explorer", sub: "Search the archive and inspect individual threads." },
+  compare: { title: "Compare", sub: "Compare domains, topics, authors, or date ranges." },
+  momentum: { title: "Momentum", sub: "Changes measured from periodic HN observations." },
+  sql: { title: "SQL Lab", sub: "Read-only access to the hackernews_history table." }
+};
+const state = {
+  view: "overview",
+  overviewDays: 30,
+  overviewFrom: "",
+  overviewTo: "",
+  stories: { sort: "score", days: 30, kind: "all", q: "", from: "", to: "", rows: [] },
+  people: { kind: "submitters", days: 0, from: "", to: "", rows: [] },
+  domains: { days: 365, metric: "count", min: 100, from: "", to: "", rows: [] },
+  explorer: { q: "", type: "all", sort: "recent", off: 0, total: 0, from: "", to: "" },
+  insightsDays: 0,
+  insightsFrom: "",
+  insightsTo: "",
+  activityDays: 90,
+  activityFrom: "",
+  activityTo: "",
+  activityYears: 10,
+  heatMetric: "avg_score",
+  topicMode: "share",
+  topicKeys: new Set(["ai", "llm", "rust", "crypto"]),
+  charts: {},
+  cache: new Map(),
+  overview: null,
+  insights: null,
+  status: null,
+  sqlRows: [],
+  sqlCols: []
+};
+async function api(path, { fresh = false, ttl = 60000 } = {}) {
+  const requestView = path.startsWith("/api/posting") ? "insights" : state.view;
+  if (!fresh) {
+    const hit = state.cache.get(path);
+    if (hit && Date.now() - hit.t < ttl) { showProvenance(path, hit.sources, requestView); return hit.v; }
+  }
+  const res = await fetch(path, { headers: { Accept: "application/json" } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  const sources = JSON.parse(res.headers.get("X-Data-Provenance") || "[]");
+  showProvenance(path, sources, requestView);
+  state.cache.set(path, { t: Date.now(), v: data, sources });
+  return data;
+}
+function showProvenance(path, sources, view = state.view) {
+  if (path.startsWith('/api/status') || !sources.length) return;
+  const section = $(`view-${view}`);
+  if (!section) return;
+  let panel = section.querySelector('.provenance');
+  if (!panel) { panel = document.createElement('div'); panel.className = 'provenance'; section.prepend(panel); }
+  panel._entries ||= new Map();
+  panel._entries.set(path.split('?')[0], sources);
+  const all = [...panel._entries.values()].flat();
+  const unique = [...new Map(all.map(r => [JSON.stringify(r), r])).values()];
+  const times = unique.map(r => r.refreshed_at).filter(Boolean).sort();
+  panel.innerHTML = `<details><summary>Data: ${esc([...new Set(unique.map(r => r.source))].join(' + '))} · oldest refresh ${esc(times[0] || 'unknown')} · ${unique.length} sources</summary>${unique.map(r => `<div>${esc(r.dataset)} · ${esc(r.source)} · refreshed ${esc(r.refreshed_at || 'unknown')}</div>`).join('')}<div>Refresh time describes retrieval, not source coverage. Archive updates can lag HN. Older aggregate snapshots may include item-version noise; search, comparisons, posting patterns and heatmaps use current item versions.</div></details>`;
+}
+function highlight(value, query, html = false) {
+  const text = html ? plainText(value || '') : String(value || '');
+  if (!query) return esc(text);
+  const lower = text.toLocaleLowerCase(), needle = query.toLocaleLowerCase();
+  let start = 0, out = '', index;
+  while ((index = lower.indexOf(needle, start)) >= 0) {
+    out += esc(text.slice(start, index)) + '<mark>' + esc(text.slice(index, index + query.length)) + '</mark>';
+    start = index + query.length;
+  }
+  return out + esc(text.slice(start));
+}
+
+function clearApiCache() { state.cache.clear(); }
+
+/* -------------------------------------------------------------------- toast */
+function toast(message, type = "") {
+  const el = document.createElement("div");
+  el.className = "toast" + (type ? " " + type : "");
+  el.textContent = message;
+  $("toast").append(el);
+  setTimeout(() => el.remove(), 4200);
+}
+
+/* ------------------------------------------------------------------- states */
+function emptyState(text) {
+  return `<div class="state"><svg class="icon"><use href="#i-search"/></svg><div>${esc(text)}</div></div>`;
+}
+function errorState(text) {
+  return `<div class="state error"><svg class="icon"><use href="#i-alert"/></svg><div>${esc(text)}</div></div>`;
+}
+function kpiSkeletons(n = 8) {
+  return Array.from({ length: n }, () => `<div class="skeleton-kpi"></div>`).join("");
+}
+function listSkeleton(n = 5) {
+  return Array.from({ length: n }, () => `<div class="skeleton-row"><div class="skeleton" style="width:34px"></div><div class="skeleton" style="flex:1"></div><div class="skeleton" style="width:54px"></div></div>`).join("");
+}
+function tableSkeleton(rows = 8) {
+  return `<div style="padding:4px 0">${Array.from({ length: rows }, () => `<div class="skeleton-row"><div class="skeleton" style="width:24px"></div><div class="skeleton" style="flex:1"></div><div class="skeleton" style="width:46px"></div><div class="skeleton" style="width:60px"></div></div>`).join("")}</div>`;
+}
+function kpiHTML({ label, value, sub = "", delta = "", title = "" }) {
+  return `<div class="kpi">
+    <div class="kpi-label">${esc(label)}</div>
+    <div class="kpi-value" title="${attr(title || value)}">${value}</div>
+    <div class="kpi-foot">${delta}${sub ? `<span>${esc(sub)}</span>` : ""}</div>
+  </div>`;
+}
+function miniStats(items) {
+  return `<div class="mini-stats">${items.map(i => `<div><b>${i.value}</b><span>${esc(i.label)}</span></div>`).join("")}</div>`;
+}
+
+/* ------------------------------------------------------------------- charts */
+function chart(id, config) {
+  if (typeof Chart === "undefined") return;
+  if (state.charts[id]) state.charts[id].destroy();
+  const el = $(id);
+  if (!el) return;
+  state.charts[id] = new Chart(el, config);
+}
+function lineOptions(granularity, { percent = false, stacked = false } = {}) {
+  const p = palette();
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 200 },
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        position: "top", align: "end",
+        labels: { color: p.muted, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", padding: 14, font: { size: 11 } }
+      },
+      tooltip: {
+        backgroundColor: p.tooltipBg, titleColor: p.tooltipText, bodyColor: p.tooltipText,
+        borderColor: p.border, borderWidth: 1, padding: 10, cornerRadius: 6,
+        displayColors: true, boxWidth: 8, boxHeight: 8, usePointStyle: true,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${percent ? (+ctx.parsed.y).toFixed(2) + "%" : fmt(ctx.parsed.y)}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        stacked, grid: { display: false }, border: { display: false },
+        ticks: {
+          color: p.muted, maxTicksLimit: 8, maxRotation: 0, autoSkip: true, font: { size: 10.5 },
+          callback: function (v) { return chartLabel(this.getLabelForValue(v), granularity); }
+        }
+      },
+      y: {
+        stacked, beginAtZero: true, grid: { color: p.grid, drawTicks: false },
+        border: { display: false },
+        ticks: { color: p.muted, padding: 6, font: { size: 10.5 }, callback: v => percent ? `${v}%` : compact(v) }
+      }
+    }
+  };
+}
+function barOptions({ log = false, percent = false, label = "items" } = {}) {
+  const p = palette();
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 200 },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: p.tooltipBg, titleColor: p.tooltipText, bodyColor: p.tooltipText,
+        borderColor: p.border, borderWidth: 1, padding: 10, cornerRadius: 6, displayColors: false,
+        callbacks: { label: ctx => ` ${fmt(ctx.parsed.y)} ${label}` }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: p.muted, font: { size: 10.5 } } },
+      y: {
+        beginAtZero: !log, type: log ? "logarithmic" : "linear",
+        grid: { color: p.grid, drawTicks: false }, border: { display: false },
+        ticks: { color: p.muted, padding: 6, font: { size: 10.5 }, callback: v => percent ? `${v}%` : compact(v) }
+      }
+    }
+  };
+}
+function heatColor(alpha) {
+  const dark = document.documentElement.dataset.theme === "dark";
+  return dark ? `rgba(255,122,26,${alpha.toFixed(3)})` : `rgba(232,89,12,${alpha.toFixed(3)})`;
+}
+function renderHeatmap(target, rows, { metric = "avg_score", minCount = null } = {}) {
+  const el = $(target);
+  if (!el) return null;
+  const threshold = minCount === null ? (metric === "c" ? 0 : 30) : minCount;
+  const map = new Map((rows || []).map(r => [`${r.w}-${r.h}`, r]));
+  const usable = (rows || []).filter(r => (+r.c || 0) >= threshold && Number.isFinite(+r[metric]));
+  const max = Math.max(1, ...usable.map(r => +r[metric]));
+  const min = metric === "c" ? 0 : Math.min(...usable.map(r => +r[metric]));
+  const best = usable.length ? usable.reduce((a, b) => (+a[metric] >= +b[metric] ? a : b)) : null;
+  let html = `<div class="heatmap"><div></div>`;
+  for (let h = 0; h < 24; h++) html += `<div class="hlabel">${h}</div>`;
+  for (let w = 1; w <= 7; w++) {
+    html += `<div class="rowlabel">${DAYS[w]}</div>`;
+    for (let h = 0; h < 24; h++) {
+      const r = map.get(`${w}-${h}`);
+      const count = r ? +r.c || 0 : 0;
+      const value = r ? +r[metric] : 0;
+      const valid = r && count >= threshold && Number.isFinite(value);
+      const alpha = valid
+        ? 0.08 + 0.92 * Math.pow((value - min) / Math.max(1e-9, max - min), 0.7)
+        : 0.04;
+      const isBest = valid && best && Number(value) === Number(best[metric]);
+      const title = r
+        ? `${DAYS[w]} ${pad2(h)}:00 ${target === "ins-heatmap" ? esc($("post-tz").value) : "UTC"} — ${fmt(r.c)} stories${r.avg_score !== null && r.avg_score !== undefined ? ` · avg score ${Number(r.avg_score).toFixed(1)}${r.median_score !== undefined ? ` · median ${Number(r.median_score).toFixed(1)} · reaching threshold ${Number(r.reach_pct).toFixed(1)}%` : ""}` : ""}`
+        : `${DAYS[w]} ${pad2(h)}:00 ${target === "ins-heatmap" ? esc($("post-tz").value) : "UTC"} — no data`;
+      html += `<div class="hcell${isBest ? " best" : ""}" style="background:${heatColor(alpha)}" title="${attr(title)}"></div>`;
+    }
+  }
+  el.innerHTML = html + "</div>";
+  return { best, max, min, metric, threshold };
+}
+/* -------------------------------------------------------------- table/rows */
+function renderStoryList(rows, { score = true } = {}) {
+  if (!rows || !rows.length) return emptyState("No stories found.");
+  return rows.map(s => `<div class="result">
+    <div class="result-side">${score ? `<b>${fmt(s.score)}</b><div class="muted">points</div>` : ""}</div>
+    <div class="result-main">${storyTitleLink(s, "result-title")}${storyMeta(s)}</div>
+  </div>`).join("");
+}
+function renderStoryTable(rows) {
+  if (!rows || !rows.length) return emptyState("No stories match these filters.");
+  return `<table class="data">
+    <thead><tr><th class="rank">#</th><th>Story</th><th class="num">Score</th><th class="num">Comments</th><th>Author</th><th class="num">Posted</th></tr></thead>
+    <tbody>${rows.map((s, i) => {
+      const url = safeUrl(s.url);
+      return `<tr>
+        <td class="rank">${i + 1}</td>
+        <td>
+          <div>${storyTitleLink(s)}</div>
+          <div class="cell-meta">
+            ${url ? `<a class="chip" href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(hostOf(url))}</a>` : '<span class="chip">text</span>'}
+            ${hnItemLink(s.id, `HN #${s.id}`)}
+          </div>
+        </td>
+        <td class="num">${fmt(s.score)}</td>
+        <td class="num">${s.descendants !== null && s.descendants !== undefined ? `<a class="link" href="${HN_ITEM(s.id)}" target="_blank" rel="noopener noreferrer">${fmt(s.descendants)}</a>` : "—"}</td>
+        <td>${userLink(s.by)}</td>
+        <td class="num nowrap" title="${attr(s.time)}">${timeAgo(s.time)}</td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table>`;
+}
+function renderDomainTable(rows, { showMax = true, showComments = false } = {}) {
+  if (!rows || !rows.length) return emptyState("No domains match these filters.");
+  const max = Math.max(...rows.map(r => +r.c || 0), 1);
+  return `<table class="data">
+    <thead><tr><th class="rank">#</th><th>Domain</th><th class="num">Stories</th><th class="num">Avg score</th>${showMax ? '<th class="num">Max</th>' : ""}${showComments ? '<th class="num">Comments</th>' : ""}<th style="width:100px">Volume</th><th></th></tr></thead>
+    <tbody>${rows.map((r, i) => `<tr>
+      <td class="rank">${i + 1}</td>
+      <td>${domainLink(r.d)}</td>
+      <td class="num">${fmt(r.c)}</td>
+      <td class="num">${r.avg_score !== null && r.avg_score !== undefined ? Number(r.avg_score).toFixed(1) : "—"}</td>
+      ${showMax ? `<td class="num">${fmt(r.max_score)}</td>` : ""}
+      ${showComments ? `<td class="num">${fmt(r.comments)}</td>` : ""}
+      <td><div class="bar"><i style="width:${Math.max(2, Math.round(100 * (+r.c || 0) / max))}%"></i></div></td>
+      <td><button class="chip action" data-filter-domain="${attr(r.d)}">stories</button></td>
+    </tr>`).join("")}</tbody>
+  </table>`;
+}
+function renderMenuLink(name) {
+  if (!name) return '<span class="muted">deleted</span>';
+  const initial = esc(String(name).slice(0, 2).toUpperCase());
+  return `<span class="mini-avatar">${initial}</span>${userLink(name)}`;
+}
+
+/* -------------------------------------------------------------- exports */
+function downloadCSV(filename, rows, columns) {
+  if (!rows || !rows.length) { toast("Nothing to export", "error"); return; }
+  const csvEsc = v => {
+    const s = String(v ?? "");
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [columns.map(c => csvEsc(c.label)).join(",")];
+  rows.forEach(r => lines.push(columns.map(c => csvEsc(r[c.key])).join(",")));
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`Exported ${rows.length} rows`, "success");
+}
+function exportStories() {
+  downloadCSV("hn-top-stories.csv", state.stories.rows, [
+    { key: "id", label: "id" }, { key: "title", label: "title" }, { key: "url", label: "url" },
+    { key: "score", label: "score" }, { key: "descendants", label: "comments" },
+    { key: "by", label: "author" }, { key: "time", label: "time" }
+  ]);
+}
+function exportDomains() {
+  downloadCSV("hn-top-domains.csv", state.domains.rows, [
+    { key: "d", label: "domain" }, { key: "c", label: "stories" },
+    { key: "avg_score", label: "avg_score" }, { key: "max_score", label: "max_score" },
+    { key: "comments", label: "comments" }
+  ]);
+}
+function exportPeople() {
+  downloadCSV("hn-people.csv", state.people.rows, [
+    { key: "u", label: "user" }, { key: "c", label: "items" },
+    { key: "avg_score", label: "avg_score" }, { key: "karma", label: "karma" },
+    { key: "comments", label: "comments" }
+  ]);
+}
+function exportSQL() {
+  downloadCSV("hn-query.csv", state.sqlRows, state.sqlCols.map(c => ({ key: c, label: c })));
+}
+
+/* ---------------------------------------------------------- date filters */
+function dateQS(from, to) {
+  let s = "";
+  if (from) s += `&from=${encodeURIComponent(from)}`;
+  if (to) s += `&to=${encodeURIComponent(to)}`;
+  return s;
+}
+function validDate(v) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(v || "");
+}
+function rangeSuffix(from, to) {
+  if (from || to) return ` · ${from || "…"} to ${to || "…"}`;
+  return "";
+}
+function describeRange(o) {
+  if (o && (o.from || o.to)) return `${o.from || "…"} to ${o.to || "…"}`;
+  if (o && o.range_label) return o.range_label;
+  const d = o && o.days;
+  if (!d) return "all time";
+  if (+d === 1) return "last 24 hours";
+  if (+d === 365) return "last year";
+  return `last ${d} days`;
+}
+
+/* --------------------------------------------------------------- overview */
+async function loadOverview(force = false) {
+  $("ov-kpis").innerHTML = kpiSkeletons(8);
+  $("ov-stories").innerHTML = listSkeleton(5);
+  $("ov-domains").innerHTML = listSkeleton(5);
+  $("ov-pulse").innerHTML = listSkeleton(5);
+  try {
+    const o = await api(`/api/overview?days=${state.overviewDays}${dateQS(state.overviewFrom, state.overviewTo)}`, { fresh: force, ttl: 60000 });
+    state.overview = o;
+    renderOverview(o);
+  } catch (e) {
+    $("ov-kpis").innerHTML = `<div class="err" style="grid-column:1/-1">${errorState("Overview failed: " + e.message)}</div>`;
+    $("ov-stories").innerHTML = errorState("Could not load stories.");
+    $("ov-domains").innerHTML = errorState("Could not load domains.");
+    $("ov-pulse").innerHTML = errorState("Could not load signals.");
+  }
+}
+function renderOverview(o) {
+  const t = o.totals || {};
+  const d = o.deltas || {};
+  const ss = o.story_stats || {};
+  const kpis = [
+    { label: "Total items", value: compact(t.total), sub: "stories, comments, jobs & polls", title: fmt(t.total) },
+    { label: "Stories", value: compact(t.stories), sub: `${pct((+t.stories || 0) / (+t.total || 1))} of all items`, title: fmt(t.stories) },
+    { label: "Comments", value: compact(t.comments), sub: `${((+t.comments || 0) / (+t.stories || 1)).toFixed(1)} per story`, title: fmt(t.comments) },
+    { label: "Authors", value: compact(t.users), sub: "distinct usernames", title: fmt(t.users) },
+    { label: "Last 24 hours", value: compact(d.d1), delta: deltaChip(d.d1, d.pd1), sub: "vs prior 24h", title: fmt(d.d1) },
+    { label: "Last 7 days", value: compact(d.d7), delta: deltaChip(d.d7, d.pd7), sub: "vs prior 7d", title: fmt(d.d7) },
+    { label: "Median story score", value: fmt(ss.med_score), sub: `n=${fmt(ss.c)} stories · 90th percentile ${fmt(ss.p90_score)}`, title: `Average ${Number(ss.avg_score || 0).toFixed(2)}` },
+    { label: "Stories with no comments", value: pct((+ss.zero_comments || 0) / (+ss.c || 1)), sub: `${compact(ss.zero_comments)} of ${compact(ss.c)} stories`, title: `${fmt(ss.zero_comments)} zero-comment stories` }
+  ];
+  $("ov-kpis").innerHTML = kpis.map(kpiHTML).join("");
+
+  const series = o.series || { rows: [], granularity: "day" };
+  const rows = series.rows || [];
+  const p = palette();
+  chart("chart-trend", {
+    type: "line",
+    data: {
+      labels: rows.map(r => r.d),
+      datasets: [
+        { label: "Stories", data: rows.map(r => +r.s), borderColor: p.accent, backgroundColor: p.accentFill, fill: true, borderWidth: 2, pointRadius: 0, tension: .25 },
+        { label: "Comments", data: rows.map(r => +r.c), borderColor: p.blue, backgroundColor: p.blueFill, fill: true, borderWidth: 2, pointRadius: 0, tension: .25 }
+      ]
+    },
+    options: lineOptions(series.granularity)
+  });
+  const granLabel = { hour: "hour", day: "day", month: "month" }[series.granularity] || "period";
+  const rangeText = describeRange(o);
+  $("ov-trend-sub").textContent = `Stories and comments per ${granLabel} · ${rangeText}`;
+  $("ov-stories-sub").textContent = `Highest scoring · ${rangeText}`;
+  $("ov-domains-sub").textContent = `Most submitted · ${rangeText}`;
+  $("ov-updated").textContent = `Data through ${fmtDateTime(t.max_time)}${o.snapshot_oldest ? ` · snapshots ${ageShort(o.snapshot_oldest)}` : ""}`;
+
+  const busiest = rows.reduce((a, b) => (!a || (+b.t > +a.t) ? b : a), null);
+  const best = o.best_window;
+  const rising = o.top_rising_domain;
+  const growth = rising ? (rising.prev ? ((rising.cur - rising.prev) / rising.prev * 100) : null) : null;
+  const growthText = growth === null ? "new" : `${growth >= 0 ? "+" : ""}${growth.toFixed(0)}%`;
+  const pulse = [
+    { icon: "activity", label: `Busiest ${granLabel}`, value: busiest ? `${chartLabel(busiest.d, series.granularity)} · ${compact(busiest.t)} items` : "—", sub: "in the selected range" },
+    { icon: "clock", label: "Highest observed average", value: best ? `${DAYS[best.w]} ${pad2(best.h)}:00 UTC · ${Number(best.avg_score).toFixed(1)} avg score` : "—", sub: best ? `${fmt(best.c)} stories · observed, not predictive` : "" },
+    { icon: "trend", label: "Median story", value: `${fmt(ss.med_score)} points`, sub: `90th percentile ${fmt(ss.p90_score)} · average ${Number(ss.avg_score || 0).toFixed(1)}` },
+    { icon: "message", label: "Discussion depth", value: `${Number(ss.avg_comments || 0).toFixed(1)} comments per story`, sub: `${pct((+ss.zero_comments || 0) / (+ss.c || 1))} of stories get none` },
+    { icon: "globe", label: "Rising domain", value: rising ? `${esc(rising.d)} · ${growthText}` : "—", sub: rising ? `${fmt(rising.cur)} stories in last 30d vs ${fmt(rising.prev)} prior` : "Snapshot signal" }
+  ];
+  $("ov-pulse").innerHTML = `<div class="pulse">${pulse.map(x => `<div class="pulse-item">
+    <div class="pulse-ico"><svg class="icon"><use href="#i-${x.icon}"/></svg></div>
+    <div><div class="pulse-label">${esc(x.label)}</div><div class="pulse-value">${x.value}</div><div class="pulse-sub">${esc(x.sub)}</div></div>
+  </div>`).join("")}</div>`;
+
+  $("ov-stories").innerHTML = renderStoryList(o.top_stories || []);
+  const domains = o.top_domains || [];
+  const max = Math.max(...domains.map(x => +x.c || 0), 1);
+  $("ov-domains").innerHTML = domains.length ? `<table class="data"><thead><tr><th class="rank">#</th><th>Domain</th><th style="width:90px">Volume</th><th class="num">Stories</th><th class="num">Avg</th></tr></thead><tbody>${domains.map((x, i) => `<tr>
+    <td class="rank">${i + 1}</td>
+    <td>${domainLink(x.d)}</td>
+    <td><div class="bar"><i style="width:${Math.max(2, Math.round(100 * (+x.c || 0) / max))}%"></i></div></td>
+    <td class="num" title="${fmt(x.c)} stories">${compact(x.c)}</td>
+    <td class="num muted">${x.avg_score !== null && x.avg_score !== undefined ? Number(x.avg_score).toFixed(1) : "—"}</td>
+  </tr>`).join("")}</tbody></table>` : emptyState("No domain data.");
+}
+function daysLabel(days) {
+  if (+days === 1) return "24 hours";
+  if (+days === 365) return "year";
+  return `${days} days`;
+}
+
+/* ---------------------------------------------------------------- stories */
+async function loadStories(force = false) {
+  const s = state.stories;
+  $("st-table").innerHTML = tableSkeleton();
+  $("st-stats").innerHTML = "";
+  try {
+    const url = `/api/top-stories?sort=${encodeURIComponent(s.sort)}&days=${s.days}&limit=50&q=${encodeURIComponent(s.q)}&kind=${encodeURIComponent(s.kind)}${dateQS(s.from, s.to)}`;
+    const rows = await api(url, { fresh: force, ttl: 60000 });
+    s.rows = rows;
+    const avg = rows.length ? rows.reduce((n, r) => n + (+r.score || 0), 0) / rows.length : 0;
+    const comments = rows.reduce((n, r) => n + (+r.descendants || 0), 0);
+    const rangeText = (s.from || s.to) ? `${s.from || "…"} to ${s.to || "…"}` : (s.days ? "last " + daysLabel(s.days) : "all time");
+    $("st-meta").textContent = `${rows.length} stories · ${rangeText} · ${s.kind === "all" ? "all formats" : s.kind.toUpperCase()}${s.q ? ` · “${s.q}”` : ""}${(s.from || s.to) ? " · live" : ""}`;
+    $("st-stats").innerHTML = `<div><b>${avg.toFixed(1)}</b><span>avg score</span></div><div><b>${compact(comments)}</b><span>comments</span></div>`;
+    $("st-table").innerHTML = renderStoryTable(rows);
+  } catch (e) {
+    $("st-table").innerHTML = errorState("Stories failed: " + e.message);
+  }
+}
+function syncStoriesFromControls() {
+  state.stories.sort = $("st-sort").value;
+  state.stories.days = +$("st-days").value;
+  state.stories.kind = $("st-kind").value;
+  state.stories.q = $("st-q").value.trim();
+  state.stories.from = $("st-from").value;
+  state.stories.to = $("st-to").value;
+}
+function applyStories() {
+  syncStoriesFromControls();
+  syncHash("stories", { sort: state.stories.sort, days: state.stories.days, kind: state.stories.kind, q: state.stories.q, from: state.stories.from, to: state.stories.to });
+  loadStories();
+}
+function resetStories() {
+  $("st-sort").value = "score";
+  $("st-days").value = "30";
+  $("st-from").value = "";
+  $("st-to").value = "";
+  $("st-kind").value = "all";
+  $("st-q").value = "";
+  applyStories();
+}
+
+/* --------------------------------------------------------------- insights */
+async function loadInsights(force = false) {
+  $("ins-kpis").innerHTML = kpiSkeletons(4);
+  $("ins-formats").innerHTML = tableSkeleton(5);
+  $("ins-domains").innerHTML = tableSkeleton(6);
+  $("ins-records").innerHTML = listSkeleton(5);
+  $("ins-meta").textContent = "Loading insights…";
+  try {
+    const ins = await api(`/api/insights?days=${state.insightsDays}${dateQS(state.insightsFrom, state.insightsTo)}`, { fresh: force, ttl: 120000 });
+    state.insights = ins;
+    renderInsights(ins);
+  } catch (e) {
+    $("ins-kpis").innerHTML = `<div style="grid-column:1/-1">${errorState("Insights failed: " + e.message)}</div>`;
+    $("ins-formats").innerHTML = errorState("Could not load formats.");
+    $("ins-domains").innerHTML = errorState("Could not load domains.");
+    $("ins-records").innerHTML = errorState("Could not load records.");
+    $("ins-meta").textContent = "Insights unavailable.";
+  }
+}
+function syncInsightsFromControls() {
+  state.insightsDays = +$("ins-days").value;
+  state.insightsFrom = $("ins-from").value;
+  state.insightsTo = $("ins-to").value;
+}
+function applyInsights() {
+  syncInsightsFromControls();
+  syncHash("insights", { days: state.insightsDays, from: state.insightsFrom, to: state.insightsTo });
+  loadInsights();
+}
+function resetInsights() {
+  $("ins-days").value = "0";
+  $("ins-from").value = "";
+  $("ins-to").value = "";
+  applyInsights();
+}
+function renderInsights(ins) {
+  const ss = (ins.story_stats || [{}])[0] || {};
+  $("ins-kpis").innerHTML = [
+    kpiHTML({ label: "Median story score", value: fmt(ss.med_score), sub: `average ${Number(ss.avg_score || 0).toFixed(1)} points` }),
+    kpiHTML({ label: "90th percentile", value: fmt(ss.p90_score), sub: "only 10% of stories score higher" }),
+    kpiHTML({ label: "No comments", value: pct((+ss.zero_comments || 0) / (+ss.c || 1)), sub: `${compact(ss.zero_comments)} of ${compact(ss.c)} stories` }),
+    kpiHTML({ label: "Comments per story", value: Number(ss.avg_comments || 0).toFixed(1), sub: "average across all visible stories" })
+  ].join("");
+  const live = !!ins.live;
+  const rangeText = live
+    ? ((ins.from || ins.to) ? `${ins.from || "…"} to ${ins.to || "…"}` : (ins.days ? "last " + daysLabel(ins.days) : "custom range"))
+    : "all time";
+  $("ins-meta").textContent = live
+    ? `Live query · ${rangeText} · refreshed ${ins.generated_at || "unknown"} · n=${fmt(ss.c)} stories`
+    : `${Object.values(ins.meta || {}).some(m => !m) ? "Snapshot / live fallback" : "Snapshots"} ${ageShort(ins.snapshot_oldest)} · n=${fmt(ss.c)} stories · ${Object.keys(ins.meta || {}).length} datasets · refresh with python3 refresh_stats.py`;
+
+  loadPosting();
+
+  const dist = ins.score_distribution || [];
+  const totalStories = dist.reduce((n, r) => n + (+r.c || 0), 0);
+  const p = palette();
+  chart("chart-scores", {
+    type: "bar",
+    data: {
+      labels: dist.map(r => r.b),
+      datasets: [{ label: "Stories", data: dist.map(r => +r.c), backgroundColor: p.accent, hoverBackgroundColor: p.accent, borderRadius: 4, maxBarThickness: 32 }]
+    },
+    options: (() => {
+      const opts = barOptions({ log: true, label: "stories" });
+      opts.plugins.tooltip.callbacks = {
+        label: ctx => ` ${fmt(ctx.parsed.y)} stories (${pct(totalStories ? ctx.parsed.y / totalStories : 0)})`
+      };
+      return opts;
+    })()
+  });
+  $("ins-score-stats").innerHTML = `<div><b>${fmt(ss.med_score)}</b><span>median</span></div><div><b>${fmt(ss.p90_score)}</b><span>p90</span></div><div><b>${compact(totalStories)}</b><span>stories</span></div>`;
+
+  const formats = ins.post_kinds || [];
+  const totalFormats = formats.reduce((n, r) => n + (+r.c || 0), 0) || 1;
+  $("ins-formats").innerHTML = formats.length ? `<table class="data"><thead><tr><th>Format</th><th class="num">Stories</th><th style="width:80px">Share</th><th class="num">Avg score</th><th class="num">Avg comments</th></tr></thead><tbody>${formats.map(r => `<tr>
+    <td>${esc(r.kind)}</td><td class="num">${fmt(r.c)}</td>
+    <td><div class="bar"><i style="width:${Math.max(2, Math.round(100 * (+r.c || 0) / totalFormats))}%"></i></div></td>
+    <td class="num">${Number(r.avg_score || 0).toFixed(1)}</td><td class="num">${Number(r.avg_comments || 0).toFixed(1)}</td>
+  </tr>`).join("")}</tbody></table>` : emptyState("No format data.");
+  const ask = formats.find(r => r.kind === "Ask HN");
+  const link = formats.find(r => r.kind === "Link post");
+  $("ins-format-note").innerHTML = ask && link
+    ? `<b>Ask HN</b> posts attract <b>${(Number(ask.avg_comments || 0) / Math.max(0.1, Number(link.avg_comments || 0))).toFixed(1)}×</b> the comments of link posts, while link posts average <b>${(Number(link.avg_score || 0) / Math.max(0.1, Number(ask.avg_score || 0))).toFixed(1)}×</b> their score.`
+    : "Format performance is based on visible stories only.";
+
+  renderTopicChips();
+  renderTopicChart();
+  renderTopicNote();
+
+  const domains = (ins.domain_quality || []).slice(0, 10);
+  $("ins-domains").innerHTML = domains.length ? `<table class="data"><thead><tr><th class="rank">#</th><th>Domain</th><th class="num">Stories</th><th class="num">Avg</th><th class="num">Max</th></tr></thead><tbody>${domains.map((r, i) => `<tr>
+    <td class="rank">${i + 1}</td><td>${domainLink(r.d)}</td><td class="num">${fmt(r.c)}</td>
+    <td class="num">${Number(r.avg_score || 0).toFixed(0)}</td><td class="num">${fmt(r.max_score)}</td>
+  </tr>`).join("")}</tbody></table>` : emptyState("No domain quality data.");
+
+  const top = (ins.records && ins.records.top_score) || [];
+  const discussed = (ins.records && ins.records.top_discussed) || [];
+  $("ins-records").innerHTML = `
+    <div><div class="record-head">Most upvoted</div>${top.map((s, i) => `<div class="record-row"><span class="rank">${i + 1}</span><div class="body">${storyTitleLink(s, "cell-title")}<div class="meta">${fmt(s.score)} points · ${fmt(s.descendants)} comments</div></div></div>`).join("")}</div>
+    <div><div class="record-head">Most discussed</div>${discussed.map((s, i) => `<div class="record-row"><span class="rank">${i + 1}</span><div class="body">${storyTitleLink(s, "cell-title")}<div class="meta">${fmt(s.descendants)} comments · ${fmt(s.score)} points</div></div></div>`).join("")}</div>`;
+}
+const TOPICS = {
+  ai: { label: "AI / OpenAI", color: "accent" },
+  llm: { label: "LLM", color: "blue" },
+  rust: { label: "Rust", color: "teal" },
+  kubernetes: { label: "Kubernetes", color: "violet" },
+  climate: { label: "Climate", color: "green" },
+  crypto: { label: "Crypto", color: "amber" },
+  startup: { label: "Startup", color: "red" }
+};
+function renderTopicChips() {
+  $("ins-topic-chips").innerHTML = Object.entries(TOPICS).map(([key, meta]) =>
+    `<button class="chip ${state.topicKeys.has(key) ? "on" : ""}" data-topic="${key}">${esc(meta.label)}</button>`).join("");
+}
+function renderTopicChart() {
+  const ins = state.insights;
+  if (!ins) return;
+  const partial = partialMonthKey();
+  const monthly = (ins.monthly || [])
+    .filter(r => String(r.m).slice(0, 4) >= "2010")
+    .filter(r => !partial || String(r.m).slice(0, 7) !== partial);
+  const trends = new Map((ins.topic_trends || []).map(r => [r.m, r]));
+  const p = palette();
+  const keys = [...state.topicKeys];
+  const mode = state.topicMode;
+  $("ins-topic-sub").textContent = "Monthly story titles matching keywords" +
+    (partial ? ` · ${dfMonth.format(parseUTC(partial + "-01"))} excluded (partial month)` : "");
+  const datasets = keys.map(k => {
+    const meta = TOPICS[k];
+    return {
+      label: meta.label,
+      data: monthly.map(r => {
+        const t = trends.get(r.m);
+        const v = t ? +t[k] || 0 : 0;
+        const denom = +(r.stories_visible ?? r.stories) || 0;
+        return mode === "share" ? (denom ? v / denom * 100 : 0) : v;
+      }),
+      borderColor: p[meta.color],
+      backgroundColor: "transparent",
+      borderWidth: 1.8, pointRadius: 0, tension: .25
+    };
+  });
+  chart("chart-topics", {
+    type: "line",
+    data: { labels: monthly.map(r => r.m), datasets },
+    options: lineOptions("month", { percent: mode === "share" })
+  });
+}
+function renderTopicNote() {
+  const el = $("ins-topic-note");
+  const ins = state.insights;
+  if (!el) return;
+  if (!ins) { el.textContent = ""; return; }
+  const partial = partialMonthKey();
+  const monthly = (ins.monthly || [])
+    .filter(r => String(r.m).slice(0, 4) >= "2010")
+    .filter(r => !partial || String(r.m).slice(0, 7) !== partial);
+  if (monthly.length < 24) { el.textContent = "Not enough history to compare 12-month periods."; return; }
+  const trends = new Map((ins.topic_trends || []).map(r => [r.m, r]));
+  const last = monthly.slice(-12);
+  const prior = monthly.slice(-24, -12);
+  const sum = (rows, key) => rows.reduce((n, r) => n + (+(trends.get(r.m) || {})[key] || 0), 0);
+  const stats = Object.keys(TOPICS).map(key => {
+    const a = sum(last, key);
+    const b = sum(prior, key);
+    return { key, a, b, growth: b ? (a - b) / b : null };
+  }).filter(x => x.a >= 20).sort((x, y) => (y.growth ?? Infinity) - (x.growth ?? Infinity));
+  if (!stats.length) { el.textContent = "Not enough data to compare topic momentum."; return; }
+  const top = stats[0];
+  const bottom = stats[stats.length - 1];
+  const pctText = g => g === null ? "new" : `${g >= 0 ? "+" : ""}${(g * 100).toFixed(0)}%`;
+  let html = `<b>${esc(TOPICS[top.key].label)}</b> title mentions are <b>${pctText(top.growth)}</b> over the last 12 complete months vs the prior 12`;
+  if (bottom && bottom.key !== top.key && bottom.growth !== null) {
+    html += `, while <b>${esc(TOPICS[bottom.key].label)}</b> is <b>${pctText(bottom.growth)}</b>`;
+  }
+  el.innerHTML = html + ". Story-title keyword matches, not sentiment.";
+}
+
+/* ----------------------------------------------------------------- people */
+async function loadPeople(force = false) {
+  const p = state.people;
+  $("pp-table").innerHTML = tableSkeleton(10);
+  try {
+    const rows = await api(`/api/top-users?kind=${encodeURIComponent(p.kind)}&limit=50&days=${p.days}${dateQS(p.from, p.to)}`, { fresh: force, ttl: 60000 });
+    p.rows = rows;
+    const isComments = p.kind === "commenters";
+    const range = (p.from || p.to) ? `${p.from || "…"} to ${p.to || "…"}` : (p.days ? "last " + daysLabel(p.days) : "all time");
+    $("pp-meta").textContent = `${p.kind === "submitters" ? "Top submitters" : p.kind === "karma" ? "Top story karma" : "Top commenters"} · ${range}${(p.from || p.to) ? " · live" : ""}`;
+    $("pp-table").innerHTML = rows.length ? `<table class="data"><thead><tr><th class="rank">#</th><th>User</th><th class="num">Items</th>${isComments ? "" : '<th class="num">Avg score</th><th class="num">Karma</th><th class="num">Comments</th>'}</tr></thead><tbody>${rows.map((r, i) => `<tr>
+      <td class="rank">${i + 1}</td><td>${renderMenuLink(r.u)}</td><td class="num">${fmt(r.c)}</td>
+      ${isComments ? "" : `<td class="num">${r.avg_score !== null && r.avg_score !== undefined ? Number(r.avg_score).toFixed(1) : "—"}</td><td class="num">${fmt(r.karma)}</td><td class="num">${fmt(r.comments)}</td>`}
+    </tr>`).join("")}</tbody></table>` : emptyState("No leaderboard data.");
+  } catch (e) {
+    $("pp-table").innerHTML = errorState("Leaderboard failed: " + e.message);
+  }
+}
+async function loadProfile(name) {
+  if (!name) return;
+  $("pp-profile").innerHTML = `<div class="state"><svg class="icon"><use href="#i-users"/></svg><div>Loading ${esc(name)}…</div></div>`;
+  try {
+    const u = await api(`/api/user/${encodeURIComponent(name)}`, { ttl: 60000 });
+    const stats = Object.fromEntries((u.stats || []).map(r => [r.t, r]));
+    const story = stats.story || {};
+    const comment = stats.comment || {};
+    const stories = +story.c || 0;
+    const comments = +comment.c || 0;
+    const total = +u.total_items || stories + comments;
+    if (!total) {
+      $("pp-profile").innerHTML = emptyState(`No items found for “${u.user}”.`);
+      return;
+    }
+    const actMap = new Map((u.activity || []).map(r => [String(r.m).slice(0, 7), +r.c || 0]));
+    const now = new Date();
+    const months = Array.from({ length: 24 }, (_, i) => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (23 - i), 1));
+      return { key: `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}`, label: `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}` };
+    });
+    const maxAct = Math.max(...months.map(m => actMap.get(m.key) || 0), 1);
+    const hasActivity = months.some(m => (actMap.get(m.key) || 0) > 0);
+    const spark = months.map(m => `<i style="height:${Math.max(4, Math.round(100 * (actMap.get(m.key) || 0) / maxAct))}%" title="${esc(m.label)} · ${fmt(actMap.get(m.key) || 0)} items"></i>`).join("");
+    const topStories = (u.top_stories || []).map((s, i) => `<div class="mini-row"><span class="rank">${i + 1}</span><div class="body">${storyTitleLink(s, "cell-title")}<div class="meta">${fmt(s.score)} points · ${fmt(s.descendants)} comments</div></div></div>`).join("");
+    const recent = (u.recent || []).slice(0, 8).map(r => {
+      const kind = r.type || "item";
+      const text = (r.type === "story" ? decodeEntities(r.title || "") : plainText(r.snippet || "")).slice(0, 150) || `item ${r.id}`;
+      const url = r.type === "story" ? safeUrl(r.url) : null;
+      const title = url ? `<a href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>` : `<a href="${HN_ITEM(r.id)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>`;
+      return `<div class="mini-row"><span class="badge ${esc(kind)}">${esc(kind)}</span><div class="body">${title}<div class="meta">${timeAgo(r.time)} · ${hnItemLink(r.id, "HN #" + r.id)}${r.parent ? ` · parent ${itemLink(r.parent)}` : ""}</div></div></div>`;
+    }).join("");
+    $("pp-profile").innerHTML = `
+      <div class="profile-head">
+        <div class="avatar">${esc(String(u.user).slice(0, 2).toUpperCase())}</div>
+        <div style="flex:1;min-width:0"><div class="profile-name">${esc(u.user)}</div><div class="profile-meta">${fmt(total)} items · first seen ${fmtDate(u.first_seen)} · last seen ${timeAgo(u.last_seen)}</div></div>
+        <a class="btn small" href="${HN_USER(u.user)}" target="_blank" rel="noopener noreferrer">HN profile<svg class="icon"><use href="#i-external"/></svg></a>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="v">${fmt(stories)}</div><div class="l">Stories</div></div>
+        <div class="stat"><div class="v">${fmt(comments)}</div><div class="l">Comments</div></div>
+        <div class="stat"><div class="v">${fmt(story.karma)}</div><div class="l">Story karma</div></div>
+        <div class="stat"><div class="v">${story.s !== null && story.s !== undefined ? Number(story.s).toFixed(1) : "—"}</div><div class="l">Avg score</div></div>
+      </div>
+      <div class="section-label">Activity · last 24 months</div>
+      <div class="spark">${hasActivity ? spark : '<div class="muted" style="font-size:11px">No recent activity</div>'}</div>
+      <div class="section-label">Top stories</div>
+      <div class="mini-list">${topStories || '<div class="muted" style="font-size:11px">No stories</div>'}</div>
+      <div class="section-label">Recent items</div>
+      <div class="mini-list">${recent || '<div class="muted" style="font-size:11px">No recent items</div>'}</div>
+    `;
+  } catch (e) {
+    $("pp-profile").innerHTML = errorState("User lookup failed: " + e.message);
+  }
+}
+
+/* ---------------------------------------------------------------- domains */
+async function loadDomains(force = false) {
+  const d = state.domains;
+  $("dm-table").innerHTML = tableSkeleton(10);
+  $("dm-rising").innerHTML = listSkeleton(5);
+  $("dm-low").innerHTML = listSkeleton(5);
+  try {
+    const [rows, ins] = await Promise.all([
+      api(`/api/top-domains?limit=50&days=${d.days}&metric=${encodeURIComponent(d.metric)}&min_posts=${d.min}${dateQS(d.from, d.to)}`, { fresh: force, ttl: 60000 }),
+      api("/api/insights", { ttl: 120000 })
+    ]);
+    d.rows = rows;
+    const rangeText = (d.from || d.to) ? `${d.from || "…"} to ${d.to || "…"}` : (d.days ? "Last " + daysLabel(d.days) : "All time");
+    $("dm-meta").textContent = `${rangeText} · ranked by ${d.metric.replace("_", " ")} · ${d.min}+ stories${(d.from || d.to) ? " · live" : ""}`;
+    $("dm-table").innerHTML = renderDomainTable(rows);
+    const rising = (ins.rising_domains || []).slice(0, 8);
+    $("dm-rising").innerHTML = rising.length ? rising.map((r, i) => {
+      const growth = r.prev ? (r.cur - r.prev) / r.prev : null;
+      const growthText = growth === null ? "new" : `${growth >= 0 ? "+" : ""}${(growth * 100).toFixed(0)}%`;
+      return `<div class="rank-row"><span class="rank">${i + 1}</span><div class="body">${domainLink(r.d)}<div class="meta">${fmt(r.cur)} this period · ${fmt(r.prev)} prior</div></div><span class="growth ${growth === null ? "new" : growth < 0 ? "neg" : ""}">${growthText}</span></div>`;
+    }).join("") : emptyState("No rising domains.");
+    const low = (ins.domain_low || []).slice(0, 8);
+    $("dm-low").innerHTML = low.length ? low.map((r, i) => `<div class="rank-row"><span class="rank">${i + 1}</span><div class="body">${domainLink(r.d)}<div class="meta">${fmt(r.c)} stories · avg ${Number(r.avg_score || 0).toFixed(1)}</div></div></div>`).join("") : emptyState("No data.");
+  } catch (e) {
+    $("dm-table").innerHTML = errorState("Domains failed: " + e.message);
+    $("dm-rising").innerHTML = errorState("Unavailable.");
+    $("dm-low").innerHTML = errorState("Unavailable.");
+  }
+}
+function syncDomainsFromControls() {
+  state.domains.days = +$("dm-days").value;
+  state.domains.metric = $("dm-metric").value;
+  state.domains.min = +$("dm-min").value;
+  state.domains.from = $("dm-from").value;
+  state.domains.to = $("dm-to").value;
+}
+function applyDomains() {
+  syncDomainsFromControls();
+  syncHash("domains", { days: state.domains.days, metric: state.domains.metric, min: state.domains.min, from: state.domains.from, to: state.domains.to });
+  loadDomains();
+}
+
+/* --------------------------------------------------------------- activity */
+async function loadActivity(force = false) {
+  $("ac-kpis").innerHTML = kpiSkeletons(4);
+  try {
+    const [ins, heat] = await Promise.all([
+      api("/api/insights", { fresh: force, ttl: 120000 }),
+      api(`/api/heatmap?days=${state.activityDays}${dateQS(state.activityFrom, state.activityTo)}`, { fresh: force, ttl: 60000 })
+    ]);
+    state.insights = ins;
+    state.heat = heat;
+    renderActivity(ins, heat);
+  } catch (e) {
+    $("ac-kpis").innerHTML = `<div style="grid-column:1/-1">${errorState("Activity failed: " + e.message)}</div>`;
+  }
+}
+function renderActivity(ins, heat) {
+  const yearly = ins.yearly || [];
+  const partial = partialMonthKey();
+  const monthly = (ins.monthly || []).filter(r => !partial || String(r.m).slice(0, 7) !== partial);
+  const busiestYear = yearly.reduce((a, b) => (!a || +b.total > +a.total ? b : a), null);
+  const busiestMonth = monthly.reduce((a, b) => (!a || +b.total > +a.total ? b : a), null);
+  const hours = Array(24).fill(0), weekdays = Array(8).fill(0);
+  (heat || []).forEach(r => { hours[+r.h] += +r.c || 0; weekdays[+r.w] += +r.c || 0; });
+  const busiestHour = hours.indexOf(Math.max(...hours));
+  const busiestWeekday = weekdays.indexOf(Math.max(...weekdays));
+  $("ac-kpis").innerHTML = [
+    kpiHTML({ label: "Busiest year", value: busiestYear ? busiestYear.y : "—", sub: busiestYear ? `${compact(busiestYear.total)} items` : "" }),
+    kpiHTML({ label: "Busiest month", value: busiestMonth ? chartLabel(busiestMonth.m, "month") : "—", sub: busiestMonth ? `${compact(busiestMonth.total)} items` : "" }),
+    kpiHTML({ label: "Busiest weekday", value: busiestWeekday ? DAYS[busiestWeekday] : "—", sub: `${compact(weekdays[busiestWeekday])} stories in window` }),
+    kpiHTML({ label: "Busiest hour", value: `${pad2(busiestHour)}:00 UTC`, sub: `${compact(hours[busiestHour])} stories in window` })
+  ].join("");
+
+  const p = palette();
+  chart("chart-year", {
+    type: "bar",
+    data: {
+      labels: yearly.map(r => r.y),
+      datasets: [
+        { label: "Stories", data: yearly.map(r => +r.stories), backgroundColor: p.accent, borderRadius: 3, maxBarThickness: 22 },
+        { label: "Comments", data: yearly.map(r => +r.comments), backgroundColor: p.blue, borderRadius: 3, maxBarThickness: 22 }
+      ]
+    },
+    options: (() => {
+      const o = barOptions({ label: "items" });
+      o.plugins.legend = { position: "top", align: "end", labels: { color: p.muted, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", padding: 14 } };
+      o.scales.x.stacked = true;
+      o.scales.y.stacked = true;
+      return o;
+    })()
+  });
+
+  const currentYear = new Date().getUTCFullYear();
+  const hasCurrentYear = yearly.some(r => +r.y === currentYear);
+  $("ac-year-sub").textContent = "Stories and comments since 2006" + (hasCurrentYear ? ` · ${currentYear} YTD` : "");
+
+  const years = state.activityYears;
+  const cutoff = years ? Date.now() - years * 365.25 * 86400 * 1000 : 0;
+  const monthlyRows = monthly.filter(r => !cutoff || (parseUTC(r.m) && parseUTC(r.m).getTime() >= cutoff));
+  chart("chart-month", {
+    type: "line",
+    data: {
+      labels: monthlyRows.map(r => r.m),
+      datasets: [
+        { label: "Total items", data: monthlyRows.map(r => +r.total), borderColor: p.accent, backgroundColor: p.accentFill, fill: true, borderWidth: 2, pointRadius: 0, tension: .2 },
+        { label: "Stories", data: monthlyRows.map(r => +r.stories), borderColor: p.blue, backgroundColor: "transparent", borderWidth: 1.6, pointRadius: 0, tension: .2 }
+      ]
+    },
+    options: lineOptions("month")
+  });
+  $("ac-month-sub").textContent = (years ? `Last ${years} years` : "All time") +
+    (partial ? ` · ${dfMonth.format(parseUTC(partial + "-01"))} excluded` : "");
+
+  chart("chart-hour", {
+    type: "bar",
+    data: { labels: hours.map((_, i) => pad2(i)), datasets: [{ data: hours, backgroundColor: p.accent, borderRadius: 3, maxBarThickness: 18 }] },
+    options: barOptions({ label: "items" })
+  });
+  chart("chart-weekday", {
+    type: "bar",
+    data: { labels: DAYS.slice(1), datasets: [{ data: weekdays.slice(1), backgroundColor: p.blue, borderRadius: 3, maxBarThickness: 34 }] },
+    options: barOptions({ label: "items" })
+  });
+
+  const result = renderHeatmap("ac-heatmap", heat || [], { metric: "c" });
+  if (result && result.best) {
+    const b = result.best;
+    $("ac-heatmap").setAttribute("title", `Busiest window: ${DAYS[b.w]} ${pad2(b.h)}:00 UTC — ${fmt(b.c)} stories`);
+  }
+}
+
+/* --------------------------------------------------------------- explorer */
+function renderSearchRows(rows) {
+  if (!rows || !rows.length) return emptyState("No matches found.");
+  return rows.map(r => {
+    if (r.type === "story") return `<div class="result"><div><div>${itemLink(r.id, 'Thread')} · ${safeUrl(r.url) ? `<a class="link" href="${attr(safeUrl(r.url))}" target="_blank" rel="noopener noreferrer">${highlight(r.title, state.explorer.q)}</a>` : highlight(r.title, state.explorer.q)}</div><div>${highlight(r.url, state.explorer.q)}</div><div class="result-meta">${fmt(r.score)} points · ${fmt(r.descendants)} comments · ${userLink(r.by)} · ${esc(r.time)}</div></div></div>`;
+    const text = highlight(r.snippet || r.text || "", state.explorer.q, true);
+    return `<div class="result">
+      <div class="result-side"><span class="badge comment">comment</span></div>
+      <div class="result-main">
+        <div class="result-meta" style="margin-top:0">by ${userLink(r.by)} <span title="${attr(r.time)}">${timeAgo(r.time)}</span> ${hnItemLink(r.id, `HN #${r.id}`)}${r.parent ? `<span>parent ${itemLink(r.parent)}</span>` : ""}</div>
+        <div class="snippet">${text}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+async function runSearch(reset = true) {
+  const q = $("ex-q").value.trim();
+  if (!q && !$("ex-author").value.trim() && !$("ex-domain").value.trim() && !+$("ex-min-score").value && !+$("ex-min-comments").value) {
+    $("ex-meta").textContent = "Enter a query to search titles, comments, and URLs.";
+    $("ex-rows").innerHTML = emptyState("Type a query to search the archive.");
+    $("ex-prev").disabled = true;
+    $("ex-next").disabled = true;
+    return;
+  }
+  if (reset) { state.explorer.off = 0; state.explorer.as_of = ""; }
+  syncCommentControls();
+  for (const key of ["author", "domain", "min-score", "min-comments"]) state.explorer[key.replaceAll("-", "_")] = $(`ex-${key}`).value;
+  state.explorer.q = q;
+  state.explorer.type = $("ex-type").value;
+  state.explorer.sort = $("ex-sort").value;
+  state.explorer.from = $("ex-from").value;
+  state.explorer.to = $("ex-to").value;
+  $("ex-rows").innerHTML = listSkeleton(6);
+  $("ex-meta").textContent = "Searching 50M items…";
+  $("ex-prev").disabled = true;
+  $("ex-next").disabled = true;
+  try {
+    const extra = new URLSearchParams({author: state.explorer.author, domain: state.explorer.domain, min_score: state.explorer.min_score, min_comments: state.explorer.min_comments, as_of: state.explorer.as_of || ""});
+    const r = await api(`/api/search?q=${encodeURIComponent(q)}&type=${encodeURIComponent(state.explorer.type)}&sort=${encodeURIComponent(state.explorer.sort)}&limit=25&offset=${state.explorer.off}&${extra}${dateQS(state.explorer.from, state.explorer.to)}`);
+    state.explorer.total = r.total;
+    state.explorer.as_of = r.as_of;
+    const rangeText = (state.explorer.from || state.explorer.to) ? ` · ${state.explorer.from || "…"} to ${state.explorer.to || "…"}` : "";
+    $("ex-meta").textContent = `${fmt(r.total)} matches${rangeText} · showing ${r.rows.length ? state.explorer.off + 1 : 0}–${state.explorer.off + r.rows.length}`;
+    $("ex-rows").innerHTML = renderSearchRows(r.rows);
+    $("ex-prev").disabled = state.explorer.off <= 0;
+    $("ex-next").disabled = state.explorer.off + r.rows.length >= r.total;
+    syncHash("explorer", { q, type: state.explorer.type, sort: state.explorer.sort, offset: state.explorer.off, author: state.explorer.author, domain: state.explorer.domain, min_score: state.explorer.min_score, min_comments: state.explorer.min_comments, as_of: state.explorer.as_of, from: state.explorer.from, to: state.explorer.to });
+  } catch (e) {
+    $("ex-meta").textContent = "Search failed.";
+    $("ex-rows").innerHTML = errorState("Search failed: " + e.message);
+  }
+}
+async function loadItem(id) {
+  if (!id) return;
+  $("item").innerHTML = `<div class="state"><svg class="icon"><use href="#i-message"/></svg><div>Loading thread ${esc(id)}…</div></div>`;
+  try {
+    const r = await api(`/api/item/${encodeURIComponent(id)}`, { ttl: 60000 });
+    if (!r.item) { $("item").innerHTML = emptyState(`Item ${id} was not found.`); return; }
+    const it = r.item;
+    const url = safeUrl(it.url);
+    const title = it.title || `${it.type} #${it.id}`;
+    const titleHTML = url
+      ? `<a href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`
+      : `<a href="${HN_ITEM(it.id)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>`;
+    const text = textWithLinks(it.text || "", 3000);
+    $("item").innerHTML = `
+      <div class="card" style="background:var(--panel-2);box-shadow:none">
+        <div class="badge-row"><span class="badge ${esc(it.type || "story")}">${esc(it.type || "item")}</span><span class="muted">${it.by ? "by " + userLink(it.by) : ""} · ${timeAgo(it.time)} · ${hnItemLink(it.id, "HN #" + it.id)}${it.parent ? ` · parent ${itemLink(it.parent)}` : ""}</span></div>
+        <div style="font-size:15px;font-weight:650;line-height:1.35;margin:5px 0">${titleHTML}</div>
+        <div class="result-meta">${it.type !== "comment" && it.score !== null && it.score !== undefined ? `<span>${fmt(it.score)} points</span>` : ""}${it.descendants !== null && it.descendants !== undefined ? `<span>${fmt(it.descendants)} comments</span>` : ""}${url ? `<a class="chip" href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(hostOf(url))}</a>` : ""}</div>
+        ${text ? `<div class="snippet" style="margin-top:9px;white-space:pre-wrap">${text}</div>` : ""}
+      </div>
+      <div class="section-label">Other submissions of this article (up to 100; includes earlier and later submissions)</div>${r.related.length ? r.related.map(x => `<div>${esc(x.time)} · ${fmt(x.score)} points · ${fmt(x.descendants)} comments · ${hnItemLink(x.id, 'HN discussion')} · ${itemLink(x.id, x.title)}</div>`).join('') : '<p class="sub">No matching submissions found. Matching ignores scheme, www, fragments and trailing slash; query parameters are retained.</p>'}
+      <div class="filterbar"><div class="field grow"><label for="thread-search">Search loaded comments (expands matches and ancestors)</label><input id="thread-search" type="search"></div><div class="field"><label for="thread-author">Highlight author (exact)</label><input id="thread-author"></div></div>
+      <p class="sub">Expand a comment to load its replies. Search covers loaded comments; collapsed, unloaded replies are not searched. Deleted comments preserve thread structure.</p>
+      <div id="thread-root"></div>`;
+    appendReplies($("thread-root"), r, it.id);
+    $("thread-search").addEventListener('input', filterThread);
+    $("thread-author").addEventListener('input', filterThread);
+  } catch (e) {
+    $("item").innerHTML = errorState("Thread failed: " + e.message);
+  }
+}
+function openItemFromInput() {
+  const id = +$("it-id").value;
+  if (!id) return;
+  navigate("explorer", { item: id });
+}
+
+/* -------------------------------------------------------------------- SQL */
+function renderSQLTable() {
+  const cols = state.sqlCols;
+  const rows = state.sqlRows.slice(0, 200);
+  if (!cols.length) { $("sql-out").innerHTML = emptyState("Query returned no columns."); return; }
+  $("sql-out").innerHTML = `<div class="table-wrap short"><table class="data"><thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${cols.map(c => `<td>${sqlCell(c, row[c])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${state.sqlRows.length > rows.length ? `<div class="muted" style="font-size:11px;margin-top:7px">Showing first ${rows.length} of ${fmt(state.sqlRows.length)} returned rows. Export includes all returned rows.</div>` : ""}`;
+}
+function sqlCell(col, value) {
+  if (value === null || value === undefined) return '<span class="muted">—</span>';
+  if (typeof value === "object") value = JSON.stringify(value);
+  const text = String(value);
+  const name = String(col || "").toLowerCase();
+  if (name === "id" && /^\d+$/.test(text)) return itemLink(text, text);
+  if ((name === "by" || name === "user" || name === "author") && text) return userLink(text);
+  const url = safeUrl(text);
+  if (url) return `<a class="link" href="${attr(url)}" target="_blank" rel="noopener noreferrer">${esc(text.length > 80 ? text.slice(0, 77) + "…" : text)}</a>`;
+  return `<span title="${attr(text)}">${esc(text.length > 300 ? text.slice(0, 297) + "…" : text)}</span>`;
+}
+async function runSQL() {
+  const sql = $("sql").value.trim();
+  if (!sql) return;
+  $("sql-out").innerHTML = listSkeleton(5);
+  $("sql-meta").textContent = "Running…";
+  $("sql-export").disabled = true;
+  try {
+    const res = await fetch("/api/sql", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sql }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Query failed");
+    showProvenance("/api/sql", JSON.parse(res.headers.get("X-Data-Provenance") || "[]"), "sql");
+    state.sqlCols = (data.meta || []).map(m => m.name);
+    state.sqlRows = data.data || [];
+    $("sql-meta").textContent = `${fmt(data.rows)} rows · ${data.elapsed_s}s · ${compact(data.statistics && data.statistics.rows_read)} rows read`;
+    $("sql-export").disabled = !state.sqlRows.length;
+    renderSQLTable();
+  } catch (e) {
+    $("sql-meta").textContent = "";
+    $("sql-out").innerHTML = errorState("Query failed: " + e.message);
+  }
+}
+function setSQL(value) {
+  $("sql").value = value;
+  $("sql").focus();
+}
+
+/* --------------------------------------------------------------- routing */
+function syncHash(view, params = {}) {
+  const clean = {};
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== "" && v !== null && v !== undefined && !(k === "offset" && +v === 0)) clean[k] = v;
+  });
+  const qs = new URLSearchParams(clean).toString();
+  const hash = view + (qs ? "?" + qs : "");
+  if (location.hash.slice(1) !== hash) history.replaceState(null, "", "#" + hash);
+}
+function navigate(view, params = {}) {
+  const clean = {};
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== "" && v !== null && v !== undefined) clean[k] = v;
+  });
+  const qs = new URLSearchParams(clean).toString();
+  const hash = view + (qs ? "?" + qs : "");
+  if (location.hash.slice(1) === hash) route(); else location.hash = hash;
+}
+function parseHash() {
+  const raw = location.hash.replace(/^#/, "") || "overview";
+  const [view, qs] = raw.split("?");
+  return { view: VIEWS[view] ? view : "overview", params: Object.fromEntries(new URLSearchParams(qs || "")) };
+}
+function route() {
+  const { view, params } = parseHash();
+  const previous = state.view;
+  state.view = view;
+  $$("#nav button").forEach(b => {
+    const on = b.dataset.view === view;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-current", on ? "page" : "false");
+  });
+  $$(".view").forEach(s => s.classList.toggle("on", s.id === "view-" + view));
+  $("page-title").textContent = VIEWS[view].title;
+  $("page-sub").textContent = VIEWS[view].sub;
+  document.title = `${VIEWS[view].title} · HN Analytics`;
+  if (previous !== view) window.scrollTo({ top: 0, behavior: "auto" });
+  ensureView(view, params);
+}
+function ensureView(view, params) {
+  if (view === "compare") {
+    for (const side of ['a','b']) for (const key of ['kind','value','from','to']) if (params[`${side}_${key}`] !== undefined) $(`cmp-${side}-${key}`).value = params[`${side}_${key}`];
+    if (params.threshold !== undefined) $('cmp-threshold').value = params.threshold;
+    loadComparison();
+  } else if (view === "momentum") { loadMomentum();
+  } else if (view === "overview") {
+    if (params.days !== undefined && [1, 7, 30, 90, 365].includes(+params.days)) state.overviewDays = +params.days;
+    if (params.from !== undefined) { state.overviewFrom = validDate(params.from) ? params.from : ""; $("ov-from").value = state.overviewFrom; }
+    if (params.to !== undefined) { state.overviewTo = validDate(params.to) ? params.to : ""; $("ov-to").value = state.overviewTo; }
+    const custom = !!(state.overviewFrom || state.overviewTo);
+    $$("#ov-range button").forEach(b => b.classList.toggle("on", !custom && +b.dataset.days === state.overviewDays));
+    loadOverview();
+  } else if (view === "stories") {
+    if (params.q !== undefined) $("st-q").value = params.q;
+    if (params.days !== undefined) $("st-days").value = params.days;
+    if (params.kind !== undefined) $("st-kind").value = params.kind;
+    if (params.sort !== undefined) $("st-sort").value = params.sort;
+    if (params.from !== undefined) $("st-from").value = validDate(params.from) ? params.from : "";
+    if (params.to !== undefined) $("st-to").value = validDate(params.to) ? params.to : "";
+    syncStoriesFromControls();
+    loadStories();
+  } else if (view === "insights") {
+    if (params.days !== undefined) $("ins-days").value = params.days;
+    if (params.from !== undefined) $("ins-from").value = validDate(params.from) ? params.from : "";
+    if (params.to !== undefined) $("ins-to").value = validDate(params.to) ? params.to : "";
+    syncInsightsFromControls();
+    loadInsights();
+  } else if (view === "people") {
+    if (params.kind !== undefined) $("pp-kind").value = params.kind;
+    if (params.days !== undefined) $("pp-days").value = params.days;
+    if (params.from !== undefined) $("pp-from").value = validDate(params.from) ? params.from : "";
+    if (params.to !== undefined) $("pp-to").value = validDate(params.to) ? params.to : "";
+    state.people.kind = $("pp-kind").value;
+    state.people.days = +$("pp-days").value;
+    state.people.from = $("pp-from").value;
+    state.people.to = $("pp-to").value;
+    loadPeople();
+    if (params.user) {
+      $("pp-lookup").value = params.user;
+      loadProfile(params.user);
+    }
+  } else if (view === "domains") {
+    if (params.days !== undefined) $("dm-days").value = params.days;
+    if (params.metric !== undefined) $("dm-metric").value = params.metric;
+    if (params.min !== undefined) $("dm-min").value = params.min;
+    if (params.from !== undefined) $("dm-from").value = validDate(params.from) ? params.from : "";
+    if (params.to !== undefined) $("dm-to").value = validDate(params.to) ? params.to : "";
+    syncDomainsFromControls();
+    loadDomains();
+  } else if (view === "activity") {
+    if (params.days !== undefined && [30, 90, 365, 0].includes(+params.days)) {
+      state.activityDays = +params.days;
+      $$("#ac-heat-range button").forEach(b => b.classList.toggle("on", +b.dataset.days === state.activityDays));
+    }
+    if (params.from !== undefined) { state.activityFrom = validDate(params.from) ? params.from : ""; $("ac-from").value = state.activityFrom; }
+    if (params.to !== undefined) { state.activityTo = validDate(params.to) ? params.to : ""; $("ac-to").value = state.activityTo; }
+    loadActivity();
+  } else if (view === "explorer") {
+    if (["q", "author", "domain", "from", "to", "min_score", "min_comments"].some(k => params[k] !== undefined)) {
+      for (const k of ["author", "domain", "min_score", "min_comments"]) $(`ex-${k.replaceAll("_", "-")}`).value = params[k] || (k.startsWith("min") ? "0" : "");
+      state.explorer.as_of = params.as_of || "";
+      if (params.q !== undefined) $("ex-q").value = params.q;
+      if (params.type !== undefined) $("ex-type").value = params.type;
+      if (params.sort !== undefined) $("ex-sort").value = params.sort;
+      if (params.from !== undefined) $("ex-from").value = validDate(params.from) ? params.from : "";
+      if (params.to !== undefined) $("ex-to").value = validDate(params.to) ? params.to : "";
+      state.explorer.off = params.offset ? +params.offset : 0;
+      runSearch(false);
+    }
+    if (params.item !== undefined) {
+      $("it-id").value = params.item;
+      loadItem(params.item);
+      setTimeout(() => $("item-card").scrollIntoView({ behavior: "smooth", block: "start" }), 180);
+    }
+  }
+}
+
+async function refreshView() {
+  clearApiCache();
+  route();
+  toast("View refreshed", "success");
+}
+
+/* ------------------------------------------------------------------ events */
+document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => navigate(b.dataset.view)));
+$$("[data-nav]").forEach(b => b.addEventListener("click", () => navigate(b.dataset.nav)));
+$("ov-view-stories").addEventListener("click", () => navigate("stories", { sort: "score", days: state.overviewDays, kind: "all", from: state.overviewFrom, to: state.overviewTo }));
+$("ov-view-domains").addEventListener("click", () => navigate("domains", { days: state.overviewDays <= 30 ? 30 : state.overviewDays <= 90 ? 90 : 365, metric: "count", min: 1, from: state.overviewFrom, to: state.overviewTo }));
+$("btn-refresh-view").addEventListener("click", refreshView);
+$("theme-toggle").addEventListener("click", toggleTheme);
+$("global-q").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const q = $("global-q").value.trim();
+    if (q) navigate("explorer", { q });
+  }
+});
+document.addEventListener("keydown", e => {
+  const tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test(tag)) {
+    e.preventDefault();
+    $("global-q").focus();
+  }
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && tag === "TEXTAREA") {
+    e.preventDefault();
+    runSQL();
+  }
+});
+document.addEventListener("click", e => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const user = e.target.closest("[data-user]");
+  if (user) {
+    e.preventDefault();
+    navigate("people", { user: user.dataset.user });
+    return;
+  }
+  const item = e.target.closest("[data-item]");
+  if (item) {
+    e.preventDefault();
+    navigate("explorer", { item: item.dataset.item });
+    return;
+  }
+  const domain = e.target.closest("[data-filter-domain]");
+  if (domain) {
+    e.preventDefault();
+    navigate("stories", { q: domain.dataset.filterDomain, days: state.domains.days ?? 365, kind: "all", sort: "score", from: state.domains.from, to: state.domains.to });
+    return;
+  }
+  const topic = e.target.closest("[data-topic]");
+  if (topic) {
+    const key = topic.dataset.topic;
+    if (state.topicKeys.has(key)) {
+      if (state.topicKeys.size > 1) state.topicKeys.delete(key);
+    } else {
+      state.topicKeys.add(key);
+    }
+    renderTopicChips();
+    renderTopicChart();
+  }
+  const example = e.target.closest("[data-sql]");
+  if (example) setSQL(example.dataset.sql);
+});
+$("ov-range").addEventListener("click", e => {
+  const b = e.target.closest("button[data-days]");
+  if (!b) return;
+  state.overviewDays = +b.dataset.days;
+  state.overviewFrom = "";
+  state.overviewTo = "";
+  $("ov-from").value = "";
+  $("ov-to").value = "";
+  $$("#ov-range button").forEach(x => x.classList.toggle("on", x === b));
+  syncHash("overview", { days: state.overviewDays });
+  loadOverview();
+});
+$("ov-apply").addEventListener("click", () => {
+  const from = $("ov-from").value;
+  const to = $("ov-to").value;
+  if ((from && !validDate(from)) || (to && !validDate(to))) { toast("Use YYYY-MM-DD dates", "error"); return; }
+  if (from && to && from > to) { toast("'From' must be on or before 'To'", "error"); return; }
+  state.overviewFrom = from;
+  state.overviewTo = to;
+  $$("#ov-range button").forEach(x => x.classList.toggle("on", false));
+  syncHash("overview", { days: state.overviewDays, from, to });
+  loadOverview(true);
+});
+$("ov-clear").addEventListener("click", () => {
+  state.overviewFrom = "";
+  state.overviewTo = "";
+  $("ov-from").value = "";
+  $("ov-to").value = "";
+  $$("#ov-range button").forEach(x => x.classList.toggle("on", +x.dataset.days === state.overviewDays));
+  syncHash("overview", { days: state.overviewDays });
+  loadOverview(true);
+});
+$("st-apply").addEventListener("click", applyStories);
+$("st-reset").addEventListener("click", resetStories);
+$("st-export").addEventListener("click", exportStories);
+$("st-q").addEventListener("keydown", e => { if (e.key === "Enter") applyStories(); });
+$("pp-apply").addEventListener("click", () => {
+  state.people.kind = $("pp-kind").value;
+  state.people.days = +$("pp-days").value;
+  state.people.from = $("pp-from").value;
+  state.people.to = $("pp-to").value;
+  if ((state.people.from && !validDate(state.people.from)) || (state.people.to && !validDate(state.people.to))) { toast("Use YYYY-MM-DD dates", "error"); return; }
+  syncHash("people", { kind: state.people.kind, days: state.people.days, from: state.people.from, to: state.people.to });
+  loadPeople();
+});
+$("pp-open").addEventListener("click", () => {
+  const name = $("pp-lookup").value.trim();
+  if (name) navigate("people", { user: name, kind: state.people.kind, days: state.people.days, from: state.people.from, to: state.people.to });
+});
+$("pp-lookup").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const name = $("pp-lookup").value.trim();
+    if (name) navigate("people", { user: name, kind: state.people.kind, days: state.people.days, from: state.people.from, to: state.people.to });
+  }
+});
+$("pp-export").addEventListener("click", exportPeople);
+$("dm-apply").addEventListener("click", applyDomains);
+$("dm-export").addEventListener("click", exportDomains);
+$("ex-apply").addEventListener("click", () => runSearch(true));
+$("ex-q").addEventListener("keydown", e => { if (e.key === "Enter") runSearch(true); });
+$("ex-prev").addEventListener("click", () => { state.explorer.off = Math.max(0, state.explorer.off - 25); runSearch(false); });
+$("ex-next").addEventListener("click", () => { state.explorer.off += 25; runSearch(false); });
+$("it-open").addEventListener("click", openItemFromInput);
+$("it-id").addEventListener("keydown", e => { if (e.key === "Enter") openItemFromInput(); });
+$("sql-run").addEventListener("click", runSQL);
+$("sql-export").addEventListener("click", exportSQL);
+$("ins-heat-metric").addEventListener("click", e => {
+  const b = e.target.closest("button[data-metric]");
+  if (!b) return;
+  state.heatMetric = b.dataset.metric;
+  $$("#ins-heat-metric button").forEach(x => x.classList.toggle("on", x === b));
+  if (state.insights) {
+    renderPosting();
+  }
+});
+$("ins-topic-mode").addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]");
+  if (!b) return;
+  state.topicMode = b.dataset.mode;
+  $$("#ins-topic-mode button").forEach(x => x.classList.toggle("on", x === b));
+  renderTopicChart();
+});
+$("ac-month-range").addEventListener("click", e => {
+  const b = e.target.closest("button[data-years]");
+  if (!b) return;
+  state.activityYears = +b.dataset.years;
+  $$("#ac-month-range button").forEach(x => x.classList.toggle("on", x === b));
+  if (state.insights) renderActivity(state.insights, state.heat || []);
+});
+$("ins-apply").addEventListener("click", applyInsights);
+$("ins-reset").addEventListener("click", resetInsights);
+$("ac-heat-range").addEventListener("click", e => {
+  const b = e.target.closest("button[data-days]");
+  if (!b) return;
+  state.activityDays = +b.dataset.days;
+  state.activityFrom = "";
+  state.activityTo = "";
+  $("ac-from").value = "";
+  $("ac-to").value = "";
+  $$("#ac-heat-range button").forEach(x => x.classList.toggle("on", x === b));
+  syncHash("activity", { days: state.activityDays });
+  loadActivity();
+});
+$("ac-apply").addEventListener("click", () => {
+  const from = $("ac-from").value;
+  const to = $("ac-to").value;
+  if ((from && !validDate(from)) || (to && !validDate(to))) { toast("Use YYYY-MM-DD dates", "error"); return; }
+  if (from && to && from > to) { toast("'From' must be on or before 'To'", "error"); return; }
+  state.activityFrom = from;
+  state.activityTo = to;
+  if (from || to) $$("#ac-heat-range button").forEach(x => x.classList.toggle("on", false));
+  syncHash("activity", { days: state.activityDays, from, to });
+  loadActivity();
+});
+window.addEventListener("hashchange", route);
+
+function syncCommentControls() {
+  const comments = $('ex-type').value === 'comment';
+  $('ex-sort').querySelector('[value="score"]').disabled = comments;
+  if (comments) $('ex-sort').value = 'recent';
+  for (const id of ['ex-min-score', 'ex-min-comments']) {
+    $(id).disabled = comments;
+    if (comments) $(id).value = '0';
+  }
+}
+$('ex-type').addEventListener('change', syncCommentControls);
+
+let postingData = null;
+async function loadPosting() {
+  $('ins-heat-note').textContent = 'Loading age-filtered story observations…';
+  $('ins-heatmap').innerHTML = '';
+  const qs = new URLSearchParams({days: state.insightsDays, from: state.insightsFrom,
+    to: state.insightsTo, tz: $('post-tz').value, threshold: $('post-threshold').value,
+    min_age: $('post-min').value, max_age: $('post-max').value});
+  try {
+    postingData = await api(`/api/posting?${qs}`);
+    renderPosting();
+  } catch (e) { postingData = null; $('ins-heat-note').textContent = e.message; }
+}
+function renderPosting() {
+  if (!postingData) return;
+  const r = postingData;
+  const result = renderHeatmap('ins-heatmap', r.rows, {metric: state.heatMetric});
+  const total = r.rows.reduce((n, x) => n + Number(x.c), 0);
+  $('ins-heat-sub').textContent = `${r.timezone} · stories currently ${r.min_age}–${r.max_age} days old · n=${fmt(total)} · threshold ≥${r.threshold} points`;
+  const b = result.best;
+  $('ins-heat-note').textContent = (b ? `Highest observed cell: ${DAYS[b.w]} ${pad2(b.h)}:00 ${r.timezone}, n=${fmt(b.c)}, median ${Number(b.median_score).toFixed(1)}, ${Number(b.reach_pct).toFixed(1)}% reached ${r.threshold} points. ` : 'No cells have enough stories. ') +
+    'Observed patterns, not a guarantee of success. Age filtering reduces age differences, but scores are not measured at a fixed age and archive updates may lag. Cells under 30 stories are dimmed.';
+}
+const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const zones = [...new Set(['UTC', localZone, ...(Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['Asia/Kolkata', 'America/New_York', 'Europe/London'])])];
+$('post-tz').innerHTML = zones.map(z => `<option value="${attr(z)}">${esc(z)}</option>`).join('');
+$('post-tz').value = localZone;
+$('post-apply').addEventListener('click', loadPosting);
+
+function appendReplies(container, data, parent) {
+  for (const comment of data.comments) {
+    const node = document.createElement('details');
+    node.className = 'thread-node';
+    node.dataset.author = comment.by || '';
+    node.dataset.text = comment.deleted || comment.dead ? '[deleted or dead]' : plainText(comment.text || '');
+    node.innerHTML = `<summary>${esc(comment.by || '[deleted]')} · ${esc(comment.time)} · ${hnItemLink(comment.id, 'Original comment')}</summary><div class="snippet thread-text">${comment.deleted || comment.dead ? '[deleted or dead]' : highlight(comment.text, $('thread-search').value, true)}</div><div class="thread-children"></div>`;
+    node.addEventListener('toggle', async () => {
+      if (node._searchOpened) { node._searchOpened = false; return; }
+      if (!node.open || node._loaded || node._loading) return;
+      node._loading = true;
+      const children = node.querySelector('.thread-children');
+      children.textContent = 'Loading replies…';
+      try {
+        const result = await api(`/api/replies?parent=${comment.id}`);
+        children.innerHTML = '';
+        appendReplies(children, result, comment.id);
+        node._loaded = true;
+        filterThread();
+      } catch (e) { children.textContent = e.message + ' · Collapse and expand to retry.'; }
+      finally { node._loading = false; }
+    });
+    container.append(node);
+  }
+  if (data.has_more) {
+    const more = document.createElement('button'); more.className = 'btn small'; more.textContent = 'Load more replies';
+    more.addEventListener('click', async () => {
+      more.disabled = true;
+      try {
+        const result = await api(`/api/replies?parent=${parent}&offset=${data.next_offset}`);
+        more.remove(); appendReplies(container, result, parent); filterThread();
+      } catch(e) { more.textContent = e.message + ' · Retry'; more.disabled = false; }
+    });
+    container.append(more);
+  }
+}
+function filterThread() {
+  const query = $('thread-search').value.trim();
+  const author = $('thread-author').value.trim();
+  const nodes = [...document.querySelectorAll('#thread-root .thread-node')];
+  for (const node of nodes.reverse()) {
+    const matches = !query || node.dataset.text.toLocaleLowerCase().includes(query.toLocaleLowerCase()) || node.dataset.author.toLocaleLowerCase().includes(query.toLocaleLowerCase());
+    const descendants = [...node.querySelectorAll('.thread-node')].some(n => !n.hidden);
+    node.hidden = !matches && !descendants;
+    node.classList.toggle('author-match', !!author && node.dataset.author === author);
+    // Search expands already-loaded nodes without triggering fetches for matches.
+    if (query && !node.hidden && !node.open) { node._searchOpened = true; node.open = true; }
+    const text = node.querySelector(':scope > .thread-text');
+    if (text) text.innerHTML = highlight(node.dataset.text, query);
+  }
+}
+const yearStart = `${new Date().getUTCFullYear()}-01-01`;
+$('compare-controls').innerHTML = ['a', 'b'].map((side, i) => `
+  <div class="card compare-cohort">
+    <h3>Cohort ${side.toUpperCase()}</h3>
+    <div class="compare-fields">
+      <div class="field field-wide">
+        <label for="cmp-${side}-kind">Compare by</label>
+        <select id="cmp-${side}-kind"><option value="topic">Topic in title</option><option value="domain">Domain (exact)</option><option value="user">Author (exact)</option><option value="dates">Date range (all stories)</option></select>
+      </div>
+      <div class="field field-wide">
+        <label for="cmp-${side}-value">Topic / domain / author</label>
+        <input type="text" id="cmp-${side}-value" value="${i ? 'Go' : 'Rust'}">
+      </div>
+      <div class="field">
+        <label for="cmp-${side}-from">From (UTC)</label>
+        <input type="date" id="cmp-${side}-from" value="${yearStart}">
+      </div>
+      <div class="field">
+        <label for="cmp-${side}-to">To (UTC, inclusive)</label>
+        <input type="date" id="cmp-${side}-to">
+      </div>
+    </div>
+  </div>`).join('');
+async function loadComparison() {
+  const qs = new URLSearchParams({threshold: $('cmp-threshold').value});
+  for (const side of ['a', 'b']) for (const key of ['kind', 'value', 'from', 'to']) qs.set(`${side}_${key}`, $(`cmp-${side}-${key}`).value);
+  syncHash('compare', Object.fromEntries(qs));
+  $('compare-result').innerHTML = 'Loading comparison…';
+  try {
+    const r = await api(`/api/compare?${qs}`);
+    const [a,b] = r.cohorts;
+    const metric = (c, key, decimals = 0) => !Number(c.submissions) && key !== 'submissions' ? '—' : Number(c[key] || 0).toLocaleString(undefined, {maximumFractionDigits: decimals});
+    $('compare-result').innerHTML = `<div class="table-wrap compare-table"><table class="data"><thead><tr><th scope="col">Metric</th><th scope="col" class="num">A: ${esc(a.value || 'All stories')}</th><th scope="col" class="num">B: ${esc(b.value || 'All stories')}</th></tr></thead><tbody>${[
+      ['Submissions (sample size)', 'submissions', 0], ['Median score', 'median_score', 1], ['Comments per story', 'comments_per_story', 1], [`Reaching ≥${r.threshold} points (%)`, 'reach_pct', 1]
+    ].map(([label,key,d]) => `<tr><td>${esc(label)}</td><td class="num">${metric(a,key,d)}</td><td class="num">${metric(b,key,d)}</td></tr>`).join('')}</tbody></table></div>`;
+  } catch(e) { $('compare-result').innerHTML = errorState(e.message); }
+}
+$('cmp-run').addEventListener('click', loadComparison);
+async function loadMomentum() {
+  $('momentum-rows').textContent = 'Loading observations…';
+  try {
+    const r = await api('/api/momentum', {fresh: true});
+    $('momentum-rows').innerHTML = r.rows.length ? `<div class="table-wrap"><table><thead><tr><th>Story</th><th>Points/hour</th><th>Score gain</th><th>Comment gain</th><th>Observed span</th></tr></thead><tbody>${r.rows.map(x => `<tr><td><button class="btn small" data-momentum="${x.id}">${esc(x.title)}</button> ${hnItemLink(x.id, 'HN')}</td><td>${Number(x.points_per_hour).toFixed(1)}</td><td>${x.score_gain}</td><td>${x.comment_gain}</td><td>${Math.round((x.end_at-x.start_at)/60)} min</td></tr>`).join('')}</tbody></table></div>` : emptyState('No paired observations yet. Start collect_momentum.py and allow at least two samples, 5 minutes apart.');
+  } catch(e) { $('momentum-rows').innerHTML = errorState(e.message); }
+}
+$('momentum-refresh').addEventListener('click', loadMomentum);
+$('momentum-rows').addEventListener('click', async event => {
+  const button = event.target.closest('[data-momentum]'); if (!button) return;
+  try {
+    const r = await api(`/api/momentum?id=${button.dataset.momentum}`, {fresh: true});
+    $('momentum-detail').innerHTML = `<h3>${esc(button.textContent)}</h3><p class="sub">${r.observations.length} recorded samples · each point is an observation, not a reconstructed value</p><div class="chart-box"><canvas id="momentum-chart"></canvas></div>`;
+    chart('momentum-chart', {type: 'line', data: {labels: r.observations.map(x => `${((x.observed_at-x.submitted_at)/3600).toFixed(2)}h after submission`), datasets: [
+      {label:'Score', data: r.observations.map(x => x.score), borderColor: palette().accent, pointRadius:3},
+      {label:'Comments', data: r.observations.map(x => x.comments), borderColor:'#40b890', pointRadius:3}
+    ]}, options: {responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}});
+  } catch(e) { $('momentum-detail').innerHTML = errorState(e.message); }
+});
+
+/* -------------------------------------------------------------------- init */
+initTheme();
+route();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments (project is stdlib-only, but keep any local env untracked)
+.venv/
+venv/
+ENV/
+
+# Generated dashboard data — rebuilt automatically, no need to commit
+# server.py recreates data/snapshots/ on start; refresh with: python3 refresh_stats.py
+data/snapshots/
+data/cache/
+# Local momentum collector DB (SQLite + WAL sidecars): python3 collect_momentum.py
+*.sqlite3*
+
+# Snapshot atomic-write temp files (*.json.tmp in data/snapshots/)
+*.tmp
+
+# Logs (e.g. cron: python3 refresh_stats.py --if-stale 5 >> refresh.log 2>&1)
+*.log
+
+# macOS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
