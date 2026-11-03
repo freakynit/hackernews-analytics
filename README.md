@@ -8,6 +8,22 @@ the free **play.clickhouse.com** ClickHouse instance (`hackernews_history`,
 
 Public repo: **https://github.com/freakynit/hackernews-analytics**
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/overview.jpg" alt="Overview tab" /><br />Overview</td>
+    <td width="50%"><img src="screenshots/insights.jpg" alt="Insights tab" /><br />Insights</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/people.jpg" alt="People tab" /><br />People</td>
+    <td width="50%"><img src="screenshots/domains.jpg" alt="Domains tab" /><br />Domains</td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="screenshots/activity.jpg" alt="Activity tab" /><br />Activity</td>
+  </tr>
+</table>
+
 ## Quick start
 
 ```bash
